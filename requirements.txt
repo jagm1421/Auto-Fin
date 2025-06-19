@@ -1,2 +1,10 @@
 streamlit
-openai
+matplotlib
+openpyxl
+seaborn
+pandas
+numpy
+markdown2
+jinja2
+weasyprint
+textwrap3
