@@ -5,7 +5,7 @@ import pandas as pd
 st.set_page_config(page_title="Auto-Fin Dashboard", layout="wide")
 st.title("Auto-Fin Dashboard")
 st.image(
-    "https://raw.githubusercontent.com/jagm1421/Auto-Fin/main/logo.png",
+    logo_path,
     caption="Logo de Auto-Fin",
     use_container_width=True,
 )
@@ -188,5 +188,5 @@ variable_directory = {
 
 graphs = {}
 logo_path = "plots/logo.png"  # Ensure the correct file location
-logoP_path = "plots/logopequeño.jpeg"  # Ensure the correct file location
+logoP_git push origin mainpath = "plots/logopequeño.jpeg"  # Ensure the correct file location
 brackets_path = "plots/brackets.jpeg"  # Ensure the correct file location
