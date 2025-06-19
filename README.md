@@ -23,6 +23,7 @@ A simple Streamlit app that answers questions about an uploaded document via Ope
 ## ✅ Check Current Git Status
 ```bash
 git status
+```
 
 ### 🔄 1. Pull Latest Changes from GitHub
 bash
