@@ -1646,6 +1646,9 @@ def upload_page():
                     if selected_sections:
                         st.success("✅ Generando el reporte con las secciones seleccionadas...")
                         st.write("Secciones incluidas:", selected_sections)
+                        if df_raw is None or df_raw.empty:
+                            st.error("❌ El archivo no fue leído correctamente.")
+                            return
                         generate_report(df_raw, selected_sections)
                     else:
                         st.warning("⚠️ Debes seleccionar al menos una sección para generar el reporte.")
@@ -2278,14 +2281,13 @@ def generate_report(df_raw, selected_sections):
         Cap3(df_raw)
     if "Capítulo 4 - Financiamiento" in selected_sections:
         Cap4(df_raw)
-    if "Poder del Uno" in selected_sections:
-        Valuacion_y_Poder_del_Uno(df_raw)
-    if "Valuación" in selected_sections:
+    if "Poder del Uno" in selected_sections or "Valuación" in selected_sections:
         Valuacion_y_Poder_del_Uno(df_raw)
     if "Crecimiento Sostenible" in selected_sections:
         Crecimiento_Sostenible(df_raw)
     if "Resultados & Proyecciones" in selected_sections:
         Proyecciones(df_raw)
+
     #### ============  EXPORTACION DEL REPORTE ============##
     #--------------------------------------------------------#
     from base64 import b64encode
