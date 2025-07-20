@@ -8,3 +8,4 @@ markdown2
 jinja2
 weasyprint
 textwrap3
+fpdf2
