@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+      font-family: sans-serif;
+      font-size: 0.9rem;
+      color: #333;
+      margin: 0px;
+      padding: 0.5px;
+    }
+    /* H1 styling */
+    h1 {
+      font-size: 27px;
+      font-weight: normal;
+      color: #91abbe;
+      text-align: left;
+      margin-top: 2px;
+      margin-bottom: 7px;
+    }
+    /* H2 styling */
+    h2 {
+      font-size: 20px;
+      font-weight: normal;
+      color: #284a5f;
+      text-align: left;
+      margin-top: 5px;
+      margin-bottom: 5px;
+    }
+    /* General Table Styling */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: sans-serif;
+      font-size: 9pt;
+      margin: 0px 0;
+    }
+    /* H3 styling */
+    h3 {
+      margin-bottom: 0;
+      font-family: sans-serif;
+      font-weight: 600;
+      font-size: 11px;
+      color: #333;
+      text-align: left;
+    }
+    /* Separator Line Below Header */
+    hr {
+      border: none;
+      height: 2px;
+      background-color: #adbec9;
+      margin-top: 3px;
+      margin-bottom: 3px;
+    }
+    /* Table Header Styling */
+    table th {
+      border-top: none !important;
+      font-size: 8pt;
+      border-bottom: 2px solid #adbec9;
+      padding: 5px 7px;
+      font-weight: bold;
+      text-align: center;
+    }
+    /* Table Body Styling */
+    table td {
+      font-size: 8pt;
+      padding: 5px 7px;
+      text-align: right;
+      border-bottom: 0.5px solid #e3ecf3;
+      min-width: 80px;
+    }
+    /* Removes Extra Borders */
+    table, th, td {
+      white-space: nowrap;
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+    }
+    @page:first {
+      margin: 0;
+      @top-left-corner   { content: none; }
+      @top-right   { content: none; }
+      @bottom-left { content: none; }
+      @bottom-right{ content: none; }
+    }
+    @page {
+      margin: 110px 80px 60px 80px;
+      @top-left-corner {
+        content: url("{{ logo_url }}");
+        width: 30px;
+      }
+      @top-right {
+        content: "{{ company }}\A{{ company }} {{ YEAR }}";
+        font-size: 10pt;
+        font-family: sans-serif;
+        color: #343337;
+        white-space: pre;
+      }
+      @bottom-left {
+        content: "Preparado por {{ Usuario }} usando Finanzas en Automático";
+        font-size: 9pt;
+        color: #343337;
+        font-family: sans-serif;
+      }
+      @bottom-right {
+        content: "Página " counter(page) " de " counter(pages);
+        font-size: 9pt;
+        color: #343337;
+        font-family: sans-serif;
+      }
+    }
+    /* Utility classes */
+    .cover {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-weight: 600;
+    }
+    .page-break { page-break-after: always; }
+    .center { text-align: center; }
+    .wide { max-width: 85%; margin: 0 auto; text-align: center; }
+    .flex-block {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Cover Page -->
+  <div class="cover">
+    <div style="height: 20em;"></div>
+    <img src="{{ logo_path }}" alt="Company Logo" style="width:400px;" />
+    <div style="height: 9em;"></div>
+    <p>{{ company }} {{ YEAR }}</p>
+    <p>Preparado para {{ company }}</p>
+    <p>{{ date }}</p>
+    <div class="page-break"></div>
+  </div>
+
+  <!-- Datos Section -->
+  <h1>Datos</h1>
+  <br /><br />
+  {{ tables['Periodo de Reportes'] | safe }}
+  {{ tables['Estado de Resultados']  | safe }}
+  {{ tables['Otra Información']      | safe }}
+  {{ tables['Activos']               | safe }}
+  {{ tables['Pasivos']               | safe }}
+  {{ tables['Financiamiento']        | safe }}
+  <div class="page-break"></div>
+
+  <!-- Resumen Section -->
+  <h1>Resumen</h1>
+  <div style="height: 2em;"></div>
+  <h2>La Historia de tus Ganancias</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Profit_Story'] }}" alt="Profit Story" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="wide">
+    {{ tables['Rendimiento'] | safe }}
+  </div>
+  <div style="height: 2em;"></div>
+  <h2>La Historia de tu Balance General</h2>
+  <div style="height: 1em;"></div>
+    <div class="center">
+    <img src="{{ graphs['BalanceSheet_Story'] }}" alt="Balance Sheet Story" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="wide">
+    {{ tables['Balance'] | safe }}
+  </div>
+  <div class="page-break"></div>
+
+  <h2>La Historia de tu Flujo de Efectivo</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['CashFlow_Story'] }}" alt="Cash Flow Story" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="wide">
+    {{ tables['FlujodeEfectivo'] | safe }}
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Capítulo 1 -->
+  <h1>Capítulo 1</h1>
+  <div style="height: 2em;"></div>
+  <h2>Rentabilidad</h2>
+  <div style="height: 1em;"></div>
+  {{ tables['Ch1_Profitability'] | safe }}
+  <div style="height: 2em;"></div>
+
+  <h2>Tendencias de Rentabilidad</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Profitability_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Crecimiento de Ingresos vs Costo de Ventas</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['RevenueVScogs'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="page-break"></div>
+
+  <h2>Crecimiento de Ingresos vs Gastos Administrativos</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['RevenueVSoverhead'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Razones de Rentabilidad</h2>
+  <div style="height: 1em;"></div>
+  <div class="wide">
+    {{ tables['Chap1'] | safe }}
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Capítulo 2 -->
+  <h1>Capítulo 2</h1>
+  <div style="height: 2em;"></div>
+  <h2>Capital de Trabajo</h2>
+  <div style="height: 1em;"></div>
+  {{ tables['Ch2_WC'] | safe }}
+  <div style="height: 2em;"></div>
+  <h2>Tendencias de Capital de Trabajo</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Working_Capital_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="page-break"></div>
+
+  <h2>Línea del Tiempo del Capital de Trabajo</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['working_capital_timeline'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Capital de Trabajo por $100</h2>
+  <div class="flex-block">
+    <img src="{{ graphs['Working_Capital_Blocks'] }}" alt="" style="max-width:100%;height:auto;" />
+    <img src="{{ graphs['ResumenCapTrabajo'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="page-break"></div>
+
+  <h2>Inversión en Capital de Trabajo por $100</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Investment_WC_per100DLLS'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Margen Bruto vs Capital de Trabajo por $100</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['GrossMarginVSwc'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Razones del Capital de Trabajo</h2>
+  <div style="height: 1em;"></div>
+  <div class="wide">
+    {{ tables['Chap2'] | safe }}
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Capítulo 3 -->
+  <h1>Capítulo 3</h1>
+  <div style="height: 2em;"></div>
+  <h2>Otro Capital</h2>
+  <div style="height: 1em;"></div>
+  <div class="wide">
+    {{ tables['Ch3_OtherCap'] | safe }}
+  </div>
+  <div style="height: 2em;"></div>
+  <h2>Tendencias de Retorno sobre Capital</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Return_on_Capital_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Retorno sobre Capital %</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Return_on_Capital'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="page-break"></div>
+
+  <h2>Otras Razones de Capital</h2>
+  <div style="height: 1em;"></div>
+  <div class="wide">
+    {{ tables['Chap3'] | safe }}
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Capítulo 4 -->
+  <h1>Capítulo 4</h1>
+  <div style="height: 2em;"></div>
+  <h2>Financiamiento</h2>
+  <div style="height: 1em;"></div>
+  <div class="wide">
+    {{ tables['Ch4_Fund'] | safe }}
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Tendencias de Financiamiento</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Funding_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+
+  <h2>Tu Financiamiento</h2>
+  <div style="height: 1em;"></div>
+  {{ tables["Cashflow_Summary"] | safe }}
+  <div style="height: 2em;"></div>
+  <div class="center">
+    <img src="{{ graphs['shortfall_legend'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+  <h2>Tu Ecuación</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Funding_Story'] }}" alt="" style="max-width:100%;height:auto;" />
+    <img src="{{ brackets_path }}" alt="" style="width:650px;" />
+  </div>
+  <div class="flex-block" style="font-weight:bold; color:#99a5ad;">
+    <div style="width:50%; text-align:center;">Financiamiento</div>
+    <div style="width:50%; text-align:center;">Activos Operativos Netos</div>
+  </div>
+  <div class="page-break"></div>
+
+  <h2>Rentabilidad vs Flujo de Efectivo</h2>
+  <div style="height: 1em;"></div>
+  {{ tables["Cash_vs_Profit"] | safe }}
+  <div style="height: 3em;"></div>
+  <h2>Beneficio del Efectivo Operacional vs Flujo de Efectivo Operacional</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['OperatingCash'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="page-break"></div>
+
+  <h2>Razones de Financiamiento</h2>
+  <div style="height: 1em;"></div>
+  <div class="wide">
+    {{ tables['Chap4'] | safe }}
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Poder del Uno -->
+  <h1>Poder del Uno</h1>
+  <div style="height: 2em;"></div>
+  <h2>Tu Poder del Uno</h2>
+  <div style="height: 1em;"></div>
+  {{ tables["Poder_UNO"] | safe }}
+  <div style="height: 2em;"></div>
+
+  <h2>Impacto de Tu Poder del Uno</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['ImpactoUNO'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Indicador del Valor -->
+  <div style="height: 2em;"></div>
+  <h1>Indicador del Valor del Negocio</h1>
+  <div style="height: 1em;"></div>
+  <h2>Valor de tu Negocio</h2>
+  <div style="height: 1em;"></div>
+  {{ tables["Valuation_Params"] | safe }}
+  <div style="height: 2em;"></div>
+  {{ tables["1Val"] | safe }}
+  <div style="height: 2em;"></div>
+  {{ tables["2Val"] | safe }}
+  <div class="page-break"></div>
+
+  <div class="wide">
+    {{ tables["3Val"] | safe }}
+  </div>
+  <div style="height: 2em;"></div>
+  <div class="center">
+    <img src="{{ graphs['Valuation_StackedBar'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div style="height: 2em;"></div>
+  <div class="wide">
+    {{ tables["4Val"] | safe }}
+  <div style="height: 1em;"></div>
+    {{ tables["5Val"] | safe }}
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Crecimiento sostenido -->
+  <h1>Crecimiento sostenido</h1>
+  <div style="height: 2em;"></div>
+  <h2>Tu Crecimiento sostenido</h2>
+  <div style="height: 1em;"></div>
+  <div class="center">
+    <img src="{{ graphs['sustainable_growth'] }}" alt="" style="max-width:100%;height:auto;" />
+  </div>
+  <div class="page-break"></div>
+
+  <!-- Resultados & Proyecciones -->
+  <h1>Resultados & Proyecciones</h1>
+  <div style="height: 2em;"></div>
+  {{ tables["Results_Statement"] | safe }}
+  <div style="height: 2em;"></div>
+  {{ tables["Balance_Sheet"] | safe }}
+  <div class="page-break"></div>
+
+  {{ tables["ResultsChap1"] | safe }}
+  <div style="height: 2em;"></div>
+  {{ tables["ResultsChap2"] | safe }}
+  <div class="page-break"></div>
+
+  {{ tables["ResultsChap3"] | safe }}
+  <div style="height: 2em;"></div>
+  {{ tables["ResultsChap4"] | safe }}
+</body>
+</html>

@@ -202,19 +202,3 @@ if st.session_state.logged_in:
 else:
     login_page()
 
-#Report_Builder
-import matplotlib.patches as patches
-import matplotlib.ticker as mtick
-import matplotlib.pyplot as plt
-import openpyxl
-from matplotlib.ticker import FuncFormatter
-from datetime import datetime
-from jinja2 import Template
-from weasyprint import HTML
-import seaborn as sns
-import pandas as pd
-import numpy as np
-import markdown2
-import textwrap
-import os
-import sys
