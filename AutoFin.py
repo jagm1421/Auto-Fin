@@ -130,10 +130,27 @@ tables = {}
 # ─── Page Setup ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Auto-Fin Dashboard", layout="wide")
 st.title("Auto-Fin Dashboard")
-st.image(
-    logo_path,
-    caption="Logo de Auto-Fin",
-    use_container_width=True)
+
+def show_logo_header():
+    st.markdown("""
+        <style>
+            .logo-container {
+                display: flex;
+                justify-content: flex-start;
+                align-items: center;
+                padding: 10px 0;
+                border-bottom: 1px solid #e6e6e6;
+                margin-bottom: 10px;
+            }
+            .logo-container img {
+                height: 60px;
+            }
+        </style>
+        <div class="logo-container">
+            <img src="https://raw.githubusercontent.com/jagm1421/Auto-Fin/main/plots/logo.png" alt="Logo">
+        </div>
+    """, unsafe_allow_html=True)
+show_logo_header()
 st.markdown("## 🔐 Secure Login System")
 
 # ─── Session-State Defaults ────────────────────────────────────────────────────
@@ -1560,108 +1577,7 @@ def generate_valuation_parameters_table(df_Valuacion, EBITDA_Promedio_Ponderada,
     return html
 #----------------------------------------------
 
-
-# ─── Login Page ────────────────────────────────────────────────────────────────
-def login_page():
-    st.subheader("Login")
-
-    # wrap inputs in a form so they don't vanish mid-click
-    with st.form("login_form", clear_on_submit=False):
-        user = st.text_input("Username")
-        pwd  = st.text_input("Password", type="password")
-        submitted = st.form_submit_button("Login")
-
-    if submitted:
-        users = st.secrets["users"]
-
-        if user not in users:
-            st.error("❌ Username not found")
-            return
-
-        if pwd != users[user]["password"]:
-            st.error("❌ Incorrect password")
-            return
-
-        # ✅ Success path
-        st.session_state.logged_in = True
-        st.session_state.username  = user
-        st.session_state.role      = users[user]["role"]
-        st.success(f"Logged in as **{st.session_state.role}**")
-
-        # NEW: explicit rerun if you want to jump straight to upload_page()
-        st.rerun()
-
-# ─── Upload Page ───────────────────────────────────────────────────────────────
-def upload_page():
-    st.subheader("📤 Upload Your Excel File")
-    uploaded_file = st.file_uploader("Choose an Excel file", type=["xlsx", "xls"])
-    if uploaded_file:
-        try:
-            # Step 1: Read the specific sheet
-            df_raw = pd.read_excel(uploaded_file, sheet_name="Inputs", skiprows=7, header=None)
-            # Drop first and third columns
-            df_raw.drop([df_raw.columns[0], df_raw.columns[2]], axis=1, inplace=True)
-            # Extract company name
-            Company_Name = df_raw.iloc[0, 1]
-            Usuario= df_raw.iloc[1, 1]
-
-            st.success(f"✅ Informacion de {Company_Name} cargada exitosamente por {Usuario}")
-            # Layout with two buttons in a row
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                if st.button("Generar Reporte"):
-                    st.session_state["show_sections"] = True
-
-            with col2:
-                if st.button("Calculadora Poder del 1"):
-                    st.session_state["go_to_poder_uno"] = True
-
-            # If Calculadora Poder del 1 button is clicked
-            if st.session_state.get("go_to_poder_uno"):
-                st.markdown("## 🧮 Calculadora - Poder del Uno")
-                st.write("Aquí podrías mostrar la herramienta de cálculo para Poder del Uno.")
-                # 👉 Llama aquí a tu función específica, por ejemplo:
-                # show_poder_del_uno_calculator(df_raw)
-
-            # If Generar Reporte was clicked
-            if st.session_state.get("show_sections"):
-                all_sections = [
-                    "Resumen",
-                    "Capítulo 1 - Rentabilidad",
-                    "Capítulo 2 - Capital de Trabajo",
-                    "Capítulo 3 - Otro Capital",
-                    "Capítulo 4 - Financiamiento",
-                    "Poder del Uno",
-                    "Valuación",
-                    "Crecimiento Sostenible",
-                    "Resultados & Proyecciones"]
-                select_all = st.checkbox("Todas", value=True)
-                selected_sections = st.multiselect(
-                    "Selecciona las secciones del reporte:",
-                    all_sections,
-                    default=all_sections if select_all else [])
-
-                st.session_state["selected_sections"] = selected_sections
-                if st.button("Confirmar Secciones y Generar"):
-                    if selected_sections:
-                        st.success("✅ Generando el reporte con las secciones seleccionadas...")
-                        st.write("Secciones incluidas:", selected_sections)
-                        if df_raw is None or df_raw.empty:
-                            st.error("❌ El archivo no fue leído correctamente.")
-                            return
-                        generate_report(df_raw, selected_sections)
-                    else:
-                        st.warning("⚠️ Debes seleccionar al menos una sección para generar el reporte.")
-            st.dataframe(df_raw)
-        except Exception as e:
-            st.error(f"❌ Error leyendo el archivo: {e}")
-
-    # Logout button
-    if st.button("Logout"):
-        for key in ("logged_in", "username", "role", "df_raw"):
-            st.session_state[key] = None
-        st.rerun()
-
+#### MANEJO DE DATA FRAME
 def df_raw_SETUP(df_raw):
     ValorObjetivo = df_raw.iloc[2, 1]
     Ajuste= df_raw.iloc[3, 1]
@@ -1852,7 +1768,6 @@ def df_raw_SETUP(df_raw):
     # Ensure column names are properly formatted for Jinja2
     df_raw.columns = df_raw.columns.astype(str)
     df_raw.index = df_raw.index.astype(str)  # Convert index to strings
-
 # ========= SECCIONES =============
 ### RESUMEN
 def Resumen (df_raw):
@@ -2269,7 +2184,6 @@ def Proyecciones (df_raw):
     for section, cfg in Fin_Statements.items():
         tables[section] = generate_financial_statements_table_from_df(df_raw, cfg)
 #---------------------------------------------------
-
 def generate_report(df_raw, selected_sections):
     if "Resumen" in selected_sections:
         Resumen(df_raw)
@@ -2330,10 +2244,166 @@ def generate_report(df_raw, selected_sections):
     st.success("✅ Report successfully generated!")
     with open(pdf_path, "rb") as f:
         st.download_button("📄 Download PDF Report", f, file_name="AutoFin_Report.pdf")
+################################################
+
+#======= PAGES LAYOUT ===========#
+# ─── Login Page ────────────────────────────────────────────────────────────────
+def login_page():
+    st.subheader("Login")
+
+    # wrap inputs in a form so they don't vanish mid-click
+    with st.form("login_form", clear_on_submit=False):
+        user = st.text_input("Username")
+        pwd  = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Login")
+
+    if submitted:
+        users = st.secrets["users"]
+
+        if user not in users:
+            st.error("❌ Username not found")
+            return
+
+        if pwd != users[user]["password"]:
+            st.error("❌ Incorrect password")
+            return
+
+        # ✅ Success path
+        st.session_state.logged_in = True
+        st.session_state.username  = user
+        st.session_state.role      = users[user]["role"]
+        st.success(f"Logged in as **{st.session_state.role}**")
+
+        # NEW: explicit rerun if you want to jump straight to upload_page()
+        st.rerun()
+
+# ─── Upload Page ───────────────────────────────────────────────────────────────
+def upload_page():
+    st.subheader("📤 Sube la información financiera de tu empresa")
+    uploaded_file = st.file_uploader("Choose an Excel file", type=["xlsx", "xls"])
+    if uploaded_file:
+        try:
+            # Step 1: Read the specific sheet
+            df_raw = pd.read_excel(uploaded_file, sheet_name="Inputs", skiprows=7, header=None)
+            # Drop first and third columns
+            df_raw.drop([df_raw.columns[0], df_raw.columns[2]], axis=1, inplace=True)
+            # Extract company name
+            Company_Name = df_raw.iloc[0, 1]
+            Usuario= df_raw.iloc[1, 1]
+
+            st.success(f"✅ Informacion de {Company_Name} cargada exitosamente por {Usuario}")
+            # Layout with two buttons in a row
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                if st.button("Generar Reporte"):
+                    st.session_state["show_sections"] = True
+
+            with col2:
+                if st.button("Calculadora Poder del 1"):
+                    st.session_state["go_to_poder_uno"] = True
+
+            # If Calculadora Poder del 1 button is clicked
+            if st.session_state.get("go_to_poder_uno"):
+                st.markdown("## 🧮 Calculadora - Poder del Uno")
+                st.write("Aquí podrías mostrar la herramienta de cálculo para Poder del Uno.")
+                # 👉 Llama aquí a tu función específica, por ejemplo:
+                # show_poder_del_uno_calculator(df_raw)
+
+            # If Generar Reporte was clicked
+            if st.session_state.get("show_sections"):
+                all_sections = [
+                    "Resumen",
+                    "Capítulo 1 - Rentabilidad",
+                    "Capítulo 2 - Capital de Trabajo",
+                    "Capítulo 3 - Otro Capital",
+                    "Capítulo 4 - Financiamiento",
+                    "Poder del Uno",
+                    "Valuación",
+                    "Crecimiento Sostenible",
+                    "Resultados & Proyecciones"]
+                select_all = st.checkbox("Todas", value=True)
+                selected_sections = st.multiselect(
+                    "Selecciona las secciones del reporte:",
+                    all_sections,
+                    default=all_sections if select_all else [])
+
+                st.session_state["selected_sections"] = selected_sections
+                if st.button("Confirmar Secciones y Generar"):
+                    if selected_sections:
+                        st.success("✅ Generando el reporte con las secciones seleccionadas...")
+                        st.write("Secciones incluidas:", selected_sections)
+                        if df_raw is None or df_raw.empty:
+                            st.error("❌ El archivo no fue leído correctamente.")
+                            return
+                        generate_report(df_raw, selected_sections)
+                    else:
+                        st.warning("⚠️ Debes seleccionar al menos una sección para generar el reporte.")
+            st.dataframe(df_raw)
+        except Exception as e:
+            st.error(f"❌ Error leyendo el archivo: {e}")
+
+    # Logout button
+    if st.button("Logout"):
+        for key in ("logged_in", "username", "role", "df_raw"):
+            st.session_state[key] = None
+        st.rerun()
+
+# Sample client database (replace this with your real one)
+client_data = pd.DataFrame([
+    {"Nombre": "Grupo Rivera", "Código": "GRV001", "Entradas": 4},
+    {"Nombre": "Industria Gómez", "Código": "INDG02", "Entradas": 2},
+    {"Nombre": "SolarMex", "Código": "SOL03", "Entradas": 1}
+])
+
+def welcome_page():
+    st.markdown("""
+        <style>
+        .banner {
+            font-size: 28px;
+            font-weight: bold;
+            color: #284a5f;
+            padding: 10px 0;
+            border-bottom: 2px solid #adbec9;
+        }
+        </style>
+        <div class="banner">👋 Bienvenido a Finanzas en Automático</div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("## 👤 Clientes")
+
+    # Client selection and buttons
+    col1, col2, col3 = st.columns([3, 1, 1])
+
+    with col1:
+        selected_client = st.selectbox("Selecciona un cliente", client_data["Nombre"])
+
+    with col2:
+        if st.button("➡️ Ir"):
+            st.success(f"Irás al perfil de: **{selected_client}**")
+            # 👉 Puedes establecer aquí una redirección o cambiar la vista
+            # st.session_state.selected_client = selected_client
+
+    with col3:
+        if st.button("➕ Agregar cliente"):
+            st.info("Funcionalidad de agregar cliente aún no implementada.")
+            # Aquí podrías abrir un formulario o habilitar un modal
+
+    # Mostrar la lista de clientes con sus detalles
+    st.markdown("### 📄 Lista de Clientes Registrados")
+
+    st.dataframe(
+        client_data.rename(columns={
+            "Nombre": "Nombre del Cliente",
+            "Código": "Código",
+            "Entradas": "Reportes Generados"
+        }),
+        use_container_width=True
+    )
 
 
 # ─── App Entry ────────────────────────────────────────────────────────────────
 if st.session_state.logged_in:
+    welcome_page()
     upload_page()
 else:
     login_page()
