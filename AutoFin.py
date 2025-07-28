@@ -1,9 +1,8 @@
-import streamlit as st
 #Report_Builder
+import streamlit as st
 import matplotlib.patches as patches
 import matplotlib.ticker as mtick
 import matplotlib.pyplot as plt
-import openpyxl
 from matplotlib.ticker import FuncFormatter
 from datetime import datetime
 from jinja2 import Template
@@ -13,9 +12,9 @@ import pandas as pd
 import numpy as np
 import textwrap
 import os
-import sys
 import locale
 from fpdf import FPDF
+
 
 # === Define Dorectories
 variable_directory = {
@@ -112,20 +111,20 @@ variable_directory = {
     'Flujo de Efectivo Fin':'Flujo_Efe_Fin',
     'Salidas de Otro Efectivo':'Salidas_Otro_Efectivo'}
 
-graphs = {}
 logo_path = "plots/logo.png"  # Ensure the correct file location
 logoP_path = "plots/logopequeño.jpeg"  # Ensure the correct file location
 brackets_path = "plots/brackets.jpeg"  # Ensure the correct file location
 Ajuste = 0
-df_transposed = {}
-df_trans_latest_two = {}
+df_raw = pd.DataFrame()
+df_transposed = pd.DataFrame()
+df_trans_latest_two = pd.DataFrame()
 EBITDA_Ajustada = 0
 ValorObjetivo = 0
 Usuario = ""
 Company_Name = ""
-df_raw = {}
 # Initialize dictionary to store generated tables
 tables = {} 
+graphs = {}
 
 # ─── Page Setup ────────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Auto-Fin Dashboard", layout="wide")
@@ -234,7 +233,7 @@ def build_power_of_one(df_raw):
     Power_of_ONE_df.at["Posicion_Ajustada", "Utilidad Operacional"] = \
         Power_of_ONE_df.at["Impacto_Poder_UNO", "Utilidad Operacional"] + utilidad_op
     return Power_of_ONE_df
-def build_Valuation(df_raw, df_power):
+def build_Valuation(df_raw, df_power, EBITDA_Ajustada, ValorObjetivo):
     """    Generar las 'Valuaciones' based on latest financial period.
     Parameters:    - df_raw (pd.DataFrame): Financial data (variables as index, periods as columns)
     Parameters:    - df_power (pd.DataFrame): Financial data (variables as index, type of outcome (profit, Cash flow) as columns)
@@ -1577,8 +1576,424 @@ def generate_valuation_parameters_table(df_Valuacion, EBITDA_Promedio_Ponderada,
     return html
 #----------------------------------------------
 
-#### MANEJO DE DATA FRAME
-def df_raw_SETUP(df_raw):
+# ========= SECCIONES =============
+### RESUMEN
+def Resumen (df_raw):
+    #-----------------------------------------------------------
+    table_configs = {                                            #========= RESUMEN
+        "Periodo de Reportes": ["Periodo", "Duracion"],
+        "Estado de Resultados": ["Ingresos", "Margen_Bruto", "Utilidad_Operacional", "Utilidad_Neta"],
+        "Otra Información": ["Depreciacion_Y_Amortizacion", "Intereses_Pagados", "Ingresos_o_Gastos_Extraordinarios","Distribuciones_Dividendos"],
+        "Activos": ["Total_Activos", "Efectivo", "Cuentas_X_Cobrar", "Inventario", "Activos_Corrientes","Activos_No_Corrientes"],
+        "Pasivos": ["Total_Pasivos", "Cuentas_X_Pagar", "Pasivos_CP"],
+        "Financiamiento": ["Prestamos_Bancarios_CP", "Prestamos_Bancarios_LP"]}
+    for table_name, variables in table_configs.items():
+        tables[table_name] = generate_jinja_table(df_raw, table_name, variables)
+    Single_Var_Table_Data =  {
+        "Rendimiento": {
+            "variables":["Ingresos", "Margen_Bruto_Perc", "Utilidad_Operacional_Perc", "Utilidad_Neta_Perc"],
+            "diff_logic":[0,0,0,0]},
+        "Balance": {
+            "variables":["Dias_Cuentas_X_Cobrar", "Dias_Inventario", "Dias_Cuentas_X_Pagar", "Dias_Capital_de_Trabajo"],
+            "diff_logic":[1,1,0,1]},
+        "FlujodeEfectivo": {
+            "variables": ["Efectivo", "Prestamos_Bancarios_CP", "Prestamos_Bancarios_LP", "Flujo_Efectivo_Neto"],
+            "diff_logic":[0,1,1,0]}}
+    for section, varinfo in Single_Var_Table_Data.items():
+        tables[section] = generate_single_var_table(df_transposed, section, varinfo)
+    Stacked_graphs_data = {
+        "CashFlow_Story": {
+            "GraphName": "CashFlow_Story",  # This will generate a file named "total_debt.png"
+            "variables": ["Prestamos_Bancarios_LP","Prestamos_Bancarios_CP"],
+            "colors": ["#2c5b9c", "#44acd3"],}}
+    for graph_name, graph_data in Stacked_graphs_data.items():
+        print(f"Generando Gráficas Apliladas: {graph_name}...")
+        graph_paths = Stacked_graph(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+### CHAP 1
+def Cap1 (df_raw):
+    Bi_Per_Table_Data1 = {                                   #========== CAP 1
+        "Chap1": {
+            "title":["Capítulo 1 - Rentabilidad"],
+            "variables":["Ingresos","Crecimiento_Ingresos_Perc", "Margen_Bruto","Margen_Bruto_Perc","Gastos_Admin","Gastos_Admin_Perc", "Utilidad_Operacional", "Utilidad_Operacional_Perc", "EBITDA", "Utilidad_Neta", "Utilidad_Neta_Perc","Ganancias_Retenidas","Cobertura_de_Intereses"],
+            "diff_logic":[0,0,0,0,1,1,0,0,0,0,0,0,0]}}
+    for chapter, variable_list in Bi_Per_Table_Data1.items():
+        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
+    Grouped_Bar_data1 = {
+        "Profitability_Trends": { #1
+            "GraphName": 'Profitability_Trends',
+            "variables": ["Margen_Bruto_Perc", "Utilidad_Operacional_Perc", "Utilidad_Neta_Perc"],  # 3 variables
+            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}}  # Color mapping  # Equation structure
+    for graph_name, graph_data in Grouped_Bar_data1.items():
+        print(f"Generando Gráficas Apliladas: {graph_name}...")
+        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+    Eq_Bar_graphs_directory = {
+        "Profit_Story": {
+            "GraphName": 'Profit_Story',
+            "variables": ["Ingresos", "Costo_de_Ventas", "Margen_Bruto", "Gastos_Admin", "Utilidad_Operacional"],  # 5 variables
+            "colors": ["#E9989E", "#EA638C", "#C4448C", "#8F3192", "#7F2E90"],  # Color mapping
+            "symbols": ["-", "=", "-", "="],},  # Equation structure
+        "BalanceSheet_Story": {
+            "GraphName": 'BalanceSheet_Story',
+            "variables": ['Patrimonio', 'Activos_Corrientes', 'Activos_Fijos', 'Pasivos_CP','Pasivos_LP'],  # 3 variables
+            "colors": ['#fad36c','#f2b154','#ec8f43','#e66c33','#d35028'],  # Color mapping
+            "symbols": ["=", "+","-","-"],},
+        "Funding_Story": {
+            "GraphName": 'Funding_Story',
+            "variables": ['Patrimonio', 'Deuda_Neta', 'Capital_de_Trabajo', 'Otro_Capital'],  # 3 variables
+            "colors": ['#EC9BA3', '#E54771', '#9B3E97', '#6E2C91'],  # Color mapping
+            "symbols": ["+", "=","+"],}}  # Equation structure
+    for graph_name, graph_data in Eq_Bar_graphs_directory.items():
+        print(f"Generating graph: {graph_name}...")
+        graph_paths = Eq_Bar_graphs(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+    Period_Grouped_Bar_data1 = {
+        "RevenueVScogs": { #1
+            "GraphName": 'RevenueVScogs',
+            "variables": ["Crecimiento_Ingresos_Perc", "Crecimiento_Costo_de_Ventas_Perc"],  # 2 variables
+            "colors": ["#e8e265", "#f7b750"]},
+        "RevenueVSoverhead": { #1
+            "GraphName": 'RevenueVSoverhead',
+            "variables": ['Crecimiento_Ingresos_Perc', 'Crecimiento_Gastos_Admin_Perc'],  # 2 variables
+            "colors": ['#fad36c',"#e69333"]}}
+    for graph_name, graph_data in Period_Grouped_Bar_data1.items():
+        print(f"Generating graph: {graph_name}...")
+        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+    Summary_Tables1 = { 
+        "Ch1_Profitability": ["Ingresos", "Margen_Bruto", "Utilidad_Operacional", "Utilidad_Neta"]}
+    for section, varlist in Summary_Tables1.items(): 
+        tables[section] = generate_Summary_table(df_raw, section, varlist)
+### CAP 2
+def Cap2 (df_raw,df_trans_latest_two):
+    #== Blocks Plots
+    # Get the latest column (i.e., the latest period)
+    latest_period = df_raw.columns[-1]              #============== CAP 2
+    inventory_days = df_raw.at["Inventario_por_100Dlls", latest_period]
+    receivables_days =df_raw.at["Cuentas_X_Cobrar_por_100Dlls", latest_period]
+    payables_days = df_raw.at["Cuentas_X_Pagar_por_100Dlls", latest_period]
+    wc_days = df_raw.at["Capital_de_Trabajo_por_100Dlls", latest_period]
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))
+    ax.axis('off')
+    ax.text(0.0, 0.90, "Capital de Trabajo", fontsize=8, fontweight='bold', color="#3b4a58", ha='left')
+    ax.text(1.0, 0.90, f"{wc_days:.0f}", fontsize=10, fontweight='bold', color="#3b4a58", ha='right')
+    ax.text(0.0, 0.70, "Inventario", fontsize=9, color="gray", ha='left')
+    ax.text(1.0, 0.70, f"{inventory_days:.0f}", fontsize=9, color="gray", ha='right')
+    ax.text(0.0, 0.60, "Ctas. por Cobrar", fontsize=9, color="gray", ha='left')
+    ax.text(1.0, 0.60, f"{receivables_days:.0f}", fontsize=9, color="gray", ha='right')
+    ax.text(0.0, 0.50, "Ctas. por Pagar", fontsize=9, color="gray", ha='left')
+    ax.text(1.0, 0.50, f"{payables_days:.0f}", fontsize=9, color="gray", ha='right')
+    ax.text(0.0, 0.20,
+            f"Por cada $100 adicionales de Ingreso,\nInviertes ${wc_days:.0f} en Capital de Trabajo",
+            fontsize=8, color="gray", ha='left')
+    os.makedirs("plots", exist_ok=True)
+    camino = os.path.join("plots", f"ResumenCapTrabajo.svg")
+    plt.tight_layout()
+    plt.savefig(camino, format="svg", bbox_inches="tight")
+    plt.close()
+    graphs.update({"ResumenCapTrabajo": camino})  # Merge all generated paths into `graphs`
+    Blocks_Plot_data = {
+        "Working_Capital_Blocks": {
+            "GraphName": 'Working_Capital_Blocks',
+            "variables": ['Inventario', 'Cuentas_X_Cobrar', 'Cuentas_X_Pagar', 'Ingresos'],
+            "colors": ["#f5989d", "#ea4c89", "#9b2fae", "#4c0070"]}}
+    for name, graph_data in Blocks_Plot_data.items():
+        print(f"Generating: {name}")
+        blockspath = Blocks_Plot(graph_data, df_transposed)
+        graphs.update(blockspath)  # Merge all generated paths into `graphs`
+
+    Bi_Per_Table_Data2 = { #Cols:Last_Period, Current_Period , 'Movement' 
+        "Chap2": {
+            "title":["Capítulo 2 - Capital de Trabajo"],
+            "variables":["Dias_Cuentas_X_Cobrar", "Dias_Inventario", "Dias_Cuentas_X_Pagar", "Dias_Capital_de_Trabajo","Capital_de_Trabajo", "Capital_de_Trabajo_por_100Dlls","Rotacion_Capital_de_Trabajo","Flujo_Efectivo_Marginal","Razon_Corriente"],
+            "diff_logic":[1,1,0,1,1,1,0,0,0]}}
+    for chapter, variable_list in Bi_Per_Table_Data2.items():
+        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
+
+    Grouped_Bar_data2 = {
+        "Working_Capital_Trends": {
+            "GraphName": 'Working_Capital_Trends',
+            "variables": ['Dias_Cuentas_X_Pagar', 'Dias_Inventario', 'Dias_Cuentas_X_Cobrar'],  # 3 variables
+            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]},  # Color mapping
+        "Investment_WC_per100DLLS": {
+            "GraphName": "Investment_WC_per100DLLS",  # This will generate a file named "total_debt.png"
+            "variables": ["Cuentas_X_Pagar_por_100Dlls","Inventario_por_100Dlls","Cuentas_X_Cobrar_por_100Dlls"],
+            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}}
+    for graph_name, graph_data in Grouped_Bar_data2.items():
+        print(f"Generando Gráficas Apliladas: {graph_name}...")
+        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+    Period_Grouped_Bar_data2 = {
+        "GrossMarginVSwc":  { #2
+            "GraphName": 'GrossMarginVSwc',
+            "variables": ['Margen_Bruto_por_100Dlls', 'Capital_de_Trabajo_por_100Dlls'],  # 2 variables
+            "colors": ["#d7a42e","#e18216"]}}  # Color mapping
+    for graph_name, graph_data in Period_Grouped_Bar_data2.items():
+        print(f"Generating graph: {graph_name}...")
+        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+
+    Summary_Tables2 = { 
+        "Ch2_WC": ["Cuentas_X_Cobrar", "Inventario", "Cuentas_X_Pagar", "Capital_de_Trabajo"]}
+    for section, varlist in Summary_Tables2.items(): 
+        tables[section] = generate_Summary_table(df_raw, section, varlist)
+    #== WC Time Line
+    nombre_linea= 'working_capital_timeline'
+    Line_Path = plot_working_capital_timeline(df_trans_latest_two, ("Este Periodo", "Periodo Anterior"),nombre_linea)
+    print(f"Generating Timeline: {nombre_linea}...")
+    graphs.update(Line_Path)  # Merge all generated paths into `graphs`
+### CAP 3
+def Cap3 (df_raw):
+    Bi_Per_Table_Data3 = {                                       #========== CAP 3
+        "Chap3": {
+            "title":["Capítulo 3 - Otro Capital"],
+            "variables":["Otro_Capital", "Otro_Capital_Perc", "Retorno_Sobre_Otro_Capital", "Activos_Operativos_Netos", "Activos_Operativos_Netos_Perc", "Rotacion_Activos",  'Retorno_Sobre_Capital_Perc','Retorno_Sobre_Total_de_Activos_Perc','Retorno_Sobre_Patrimonio_Perc'],
+            "diff_logic":[1,1,0,0,1,0,0,0,0]}}
+    for chapter, variable_list in Bi_Per_Table_Data3.items():
+        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
+    Grouped_Bar_data3 = {
+        "Return_on_Capital_Trends": {
+            "GraphName": 'Return_on_Capital_Trends',
+            "variables": ['Utilidad_Operacional_Perc', 'Rotacion_Activos', 'Retorno_Sobre_Capital_Perc'],  # 3 variables
+            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}} # Color mapping
+    for graph_name, graph_data in Grouped_Bar_data3.items():
+        print(f"Generando Gráficas Apliladas: {graph_name}...")
+        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+    #== 2 Blocks Plots
+    ReturnOnCapital_data = {
+        "Return_on_Capital": {
+            "GraphName": "Return_on_Capital",
+            "variables": [
+                "Utilidad_Operacional",  # 0
+                "Ingresos",              # 1
+                "Ingresos",              # 2
+                "Capital_de_Trabajo",    # 3
+                "Otro_Capital",          # 4
+                "Utilidad_Operacional",  # 5
+                "Activos_Operativos_Netos"  # 6
+            ],
+            "colors": [
+                "#f5989d", "#f5989d", "#f5989d",
+                "#ea4c89", "#9b2fae", "#4c0070", "#6c3483"
+            ]
+        }
+    }
+    for name, graph_data in ReturnOnCapital_data.items():
+        print(f"Generating: {name}")
+        pathdict = ReturnOnCapital_Plot(graph_data, df_raw)
+        graphs.update(pathdict)
+    Summary_Tables3 = { 
+        "Ch3_OtherCap": ["Activos_Fijos", "Otros_Activos", "Otros_Pasivos", "Otro_Capital"]}
+    for section, varlist in Summary_Tables3.items(): 
+        tables[section] = generate_Summary_table(df_raw, section, varlist)
+### CAP 4
+def Cap4 (df_raw):
+    latest_period = df_raw.columns[-1]
+    Cash_vs_Profit_Dict = {                                     #===========CAP 4
+        "1": {
+            "Profit":["Ingresos","Costo_de_Ventas","Margen_Bruto"],
+            "cash": ["Efectivo_de_Clientes","Efectivo_a_Proveedores","Beneficio_Efectivo_Bruto"],
+            "Inverse_logic": ['0','1','0']},
+        "2": {
+            "Profit":["Gastos_Admin_LessDA","Beneficio_Operativo_Efectivo"],
+            "cash": ["Gastos_Admin_LessDA","Flujo_Efectivo_Operativo"]},
+        "3": {
+            "Profit":[None],
+            "cash": ["Salidas_Otro_Efectivo"]},
+        "4": {
+            "Profit":["Intereses_Pagados","Impuestos_Pagados","Ingresos_o_Gastos_Extraordinarios","Distribuciones_Dividendos","Depreciacion_Y_Amortizacion",None,None,"Utilidad_Retenida"],
+            "cash": ["Intereses_Pagados","Impuestos_Pagados","Ingresos_o_Gastos_Extraordinarios","Distribuciones_Dividendos","Inversion_Activos_Fijos","Inversion_Otros_Activos_Netos","Capital_Inyectado","Flujo_Efe_Fin"]}}
+    tables["Cash_vs_Profit"] = generate_cash_vs_profit_table(df_raw, Cash_vs_Profit_Dict, title="Utilidad vs Flujo de Efectivo")
+    Cashflow_Chapters = {
+        "Capítulo 1": ["Utilidad_Retenida"],
+        "Capítulo 2": ["Inversion_Capital_de_Trabajo"],
+        "Capítulo 3": ["Inversion_Otro_Capital",]}
+    tables["Cashflow_Summary"] = generate_cashflow_chapter_table_from_df(
+        df_transposed,
+        Cashflow_Chapters,
+        current_period=latest_period,
+        title="")
+    Bi_Per_Table_Data4 = {  
+        "Chap4": {
+            "title":["Capítulo 4 - Financiamiento"],
+            "variables":["Flujo_Efectivo_Marginal", "Flujo_Efectivo_Operacional", "Beneficio_Efectivo_Operacional", "Flujo_Efectivo_Neto", "Deuda_Neta", "Deuda_Neta_a_Capital_Social", "Deuda_a_Capital","Cobertura_de_Intereses","Repago_de_Deuda"],
+            "diff_logic":[0,0,0,1,1,1,1,0,1]}}
+    for chapter, variable_list in Bi_Per_Table_Data4.items():
+        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
+    Grouped_Bar_data4= {
+        "Funding_Trends": {
+            "GraphName": "Funding_Trends",  # This will generate a file named "total_debt.png"
+            "variables": ["Efectivo","Deuda_Total","Patrimonio"],
+            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}}  # Color mapping
+    for graph_name, graph_data in Grouped_Bar_data4.items():
+        print(f"Generando Gráficas Apliladas: {graph_name}...")
+        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+
+    Period_Grouped_Bar_data4 = {
+        "OperatingCash": { #4
+            "GraphName": 'OperatingCash',
+            "variables": ['Beneficio_Efectivo_Operacional', 'Flujo_Efectivo_Operacional'],  # 2 variables
+            "colors": ["#ecb944","#e0642a"]}}
+    for graph_name, graph_data in Period_Grouped_Bar_data4.items():
+        print(f"Generating graph: {graph_name}...")
+        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+
+    Summary_Tables4 = { 
+        "Ch4_Fund": ["Efectivo", "Deuda_Total", "Patrimonio", "Financiamiento_Total"],}
+    for section, varlist in Summary_Tables4.items(): 
+        tables[section] = generate_Summary_table(df_raw, section, varlist)
+### VALUACION y Poder del UNO
+def Valuacion_y_Poder_del_Uno(df_raw,ValorObjetivo,Ajuste):
+    #============= Poder del UNO==========#
+    df_power = build_power_of_one(df_raw)
+    df_power_transposed = df_power.T
+    weights = [4, 3, 2, 1]
+    available_columns = df_raw.columns[-len(weights):]  # Toma solo las últimas N columnas disponibles
+    used_weights = weights[-len(available_columns):]    # Ajusta los pesos si hay menos columnas
+    ebitda_values = df_raw.loc["EBITDA", available_columns]
+    EBITDA_Promedio_Ponderada = (ebitda_values * used_weights).sum() / sum(used_weights)
+    EBITDA_Ajustada = (EBITDA_Promedio_Ponderada+Ajuste)
+    #============== Valuacion ============#
+    df_Valuacion= build_Valuation(df_raw, df_power, EBITDA_Ajustada, ValorObjetivo)
+    label_map = { # Diccionario de etiquetas Poder UNO
+        "Posicion_Actual": "Tu Posicion Actual",
+        "Incre_Precio_Perc": "Incremento en el Precio  %",
+        "Incre_Volumen_Perc": "Incremento en el Volumen %",
+        "Reduc_Costo_de_Ventas_Perc": "Reduccion del Costo de Ventas %",
+        "Reduc_Gastos_Admin_Perc": "Reduccion de Gastos Administrativos %",
+        "Reduc_Cuentas_X_Cobrar_Dias": "Reduccion en Dias de Cuentas X Cobrar",
+        "Reduc_Inventario_Dias": "Reduccion en Dias de Inventario",
+        "Incre_Cuentas_X_Pagar_Dias": "Reduccion en Dias de Cuentas X Pagar",
+        "Impacto_Poder_UNO": "Impacto de Tu Poder del Uno",
+        "Posicion_Ajustada": "Tu Posicion Ajustada"}
+    tables["Poder_UNO"] = generate_power_of_one_blocks(df_power, label_map)
+    Period_Grouped_Bar_dataUNO = {
+        "ImpactoUNO": {
+            "df": df_power_transposed,
+            "periodos":['Flujo de efectivo neto','Utilidad Operacional'],
+            "GraphName": 'ImpactoUNO',
+            "variables": ['Posicion_Actual', 'Posicion_Ajustada'],  # 2 variables
+            "colors": ["#ecb944","#e0642a"]}} 
+    for graph_name, graph_data in Period_Grouped_Bar_dataUNO.items():
+        print(f"Generating graph: {graph_name}...")
+        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+
+    weights = [4, 3, 2, 1]
+    available_columns = df_raw.columns[-len(weights):]  # Toma solo las últimas N columnas disponibles
+    used_weights = weights[-len(available_columns):]    # Ajusta los pesos si hay menos columnas
+    ebitda_values = df_raw.loc["EBITDA", available_columns]
+    EBITDA_Promedio_Ponderada = (ebitda_values * used_weights).sum() / sum(used_weights)
+    EBITDA_Ajustada = (EBITDA_Promedio_Ponderada+Ajuste)
+    Valuation_table = {                                         #============VALUACION
+        "1Val":{"Tu Valor del Negocio Actual": ["Múltiplo de Ganancias", "Valor Bruto del Negocio", "Deuda Total", "Valor Actual de tu Negocio"],
+                "bold":[0,0,0,1]},
+        "2Val":{"Tu Valor con el Poder del Uno": ["Múltiplo de Ganancias", "Incremento de Precio %","Incremento de Volumen %","Reducción del Costo de Ventas %","Reducción de Gastos Admin %","Impacto de la Ganancia en la Valoración","Reducción en Días de Cuentas por Cobrar","Reducción en Días de Inventario","Aumento en Días de Cuentas por Pagar","Impacto del Efectivo en la Valoración","Impacto de tu Poder del Uno", "Valor del Negocio Mejorado"],
+                "bold":[0,0,0,0,0,1,0,0,0,1,1,1]},
+        "3Val":{"Tu Indicador de Valor Mejorado":["Múltiplo de Ganancias","Valor Actual de tu Negocio", "Impacto de tu Poder del Uno", "Valor del Negocio Mejorado"],
+                "bold":[0,0,0,1]}, 
+        "4Val":{"Tu Valor Objetivo del Negocio":["Múltiplo de Ganancias", "Valor Objetivo del Negocio", "Valor Actual de tu Negocio", "Brecha de Valor Actual"],
+                "bold":[0,0,0,1]}, 
+        "5Val":{"Tu Valor del Negocio Mejorado":["Múltiplo de Ganancias", "Valor Objetivo del Negocio", "Valor del Negocio Mejorado","Brecha de Valor Mejorada"],
+                "bold":[0,0,0,1]}}
+    for section, details in Valuation_table.items():
+        tables[section] = generate_valuation_table(df_Valuacion, {section: details})
+    graphs.update(plot_business_valuation_stacked(df_Valuacion))
+    tables["Valuation_Params"] = generate_valuation_parameters_table(
+        df_Valuacion,
+        EBITDA_Promedio_Ponderada=EBITDA_Promedio_Ponderada,
+        Ajuste=Ajuste,
+        EBITDA_Ajustada=EBITDA_Ajustada)
+### Crecimiento Sostenible
+def Crecimiento_Sostenible(df_raw):
+    latest_period = df_raw.columns[-1]    
+    #== Shortfall legend
+    legend_path = create_shortfall_legend(round(df_raw.at["Flujo_Efe_Fin", latest_period],0))  # genera la versión en rojo
+    graphs["shortfall_legend"] = legend_path
+    #== Shorfall Sheet
+    resultados = calcular_resumen_financiero(df_raw)
+    sustainable_data = {
+        "left": {
+            'Variables':[
+                ("Si incrementas tus Ingresos por", "+", resultados["incremento_ingresos"]),
+                ("Menos Costo de ventas de", "-", resultados["costo_ventas"]),
+                ("Tu margen Bruto será", "=", resultados["margen_bruto"]),
+                ("Menos Costos Administrativos", "-", resultados["gastos_admin"]),
+                ("Tu Utilidad Operativa será", "=", resultados["utilidad_operativa"]),
+                ("Menos Ingresos/Gastos Extraordinarios", "-", resultados["extraordinarios"]),
+                ("Menos Intereses Pagados", "-", resultados["intereses"]),
+                ("Menos Impuestos", "-", resultados["impuestos"]),
+                ("Menos Dividendos", "-", resultados["dividendos"]),
+                ("Tu Utilidad Retenida será", "=", resultados["utilidad_retenida"])],
+            'format':[0,0,0,0,0,1,1,1,1,0]},
+        "right": {
+            'Variables':[
+                ("Tu inversión en Cuentas por Cobrar será", "+", resultados["cxc"]),
+                ("Tu inversión en Inventario será", "+", resultados["inventario"]),
+                ("Provisto por Cuentas por Pagar", "-", resultados["cxp"]),
+                ("Requerirás Capital de Trabajo de", "=", resultados["capital_trabajo"]),
+                (f"Tu razon Deuda/Capital es {resultados['deuda_capital']}", None, None),
+                (f"Puedes pedir \${resultados['deuda_capital']} por cada \$1 de Utilidad Retenida", None, None),
+                ("Tu capacidad de fondearte será", "=", resultados["capacidad_fondeo"])],
+            'format':[0,0,0,0,1,1,2]},
+        "bottom": ("Tendrás una necesidad de financiamiento de", "=", resultados["shortfall"])}
+    sustainable_growth_path = create_sustainable_growth_graph(sustainable_data, output_path="plots/sustainable_growth.svg")
+    graphs["sustainable_growth"] = sustainable_growth_path
+    #---------------------------------------------------------#
+### PROYECCIONES
+def Proyecciones (df_raw):
+    Fin_Statements = {                                         #============PROYECCIONES
+        'Results_Statement': { 'title': 'Estado de Resultados',
+            'variables': [
+                "Ingresos", "Costo_de_Ventas", "Margen_Bruto", "Gastos_Admin",
+                "Utilidad_Operacional", "Intereses_Pagados", "Ingresos_o_Gastos_Extraordinarios",
+                "Utilidad_Neta_Antes_de_Impuestos", "Impuestos_Pagados",
+                "Utilidad_Neta", "Distribuciones_Dividendos", "Utilidad_Retenida"],
+            'format': [0,0,1,0,1,0,0,1,0,1,0,1]},
+        'Balance_Sheet': { 'title': 'Balance General',
+            'variables': [
+                "Efectivo", "Cuentas_X_Cobrar", "Inventario", "Otros_Activos_Corrientes",
+                "Activos_Corrientes", "Activos_Fijos", "Otros_Activos_No_Corrientes",
+                "Activos_No_Corrientes", "Total_Activos", "Cuentas_X_Pagar",
+                "Prestamos_Bancarios_CP", "Otros_Pasivos_CP", "Pasivos_CP",
+                "Prestamos_Bancarios_LP", "Otros_Pasivos_LP", "Pasivos_LP",
+                "Total_Pasivos", "Patrimonio"],
+            'format': [0,0,0,0,1,0,0,1,1,0,0,0,1,0,0,1,1,1]},
+        'ResultsChap1': { 'title': 'Capítulo 1 - Rentabilidad',
+            'variables': [
+                "Ingresos", "Crecimiento_Ingresos_Perc", "Margen_Bruto", "Margen_Bruto_Perc",
+                "Gastos_Admin", "Gastos_Admin_Perc", "Utilidad_Operacional",
+                "Utilidad_Operacional_Perc", "EBITDA", "Utilidad_Neta",
+                "Utilidad_Neta_Perc", "Utilidad_Retenida", "Cobertura_de_Intereses"],
+            'format': [0,0,0,0,0,0,0,0,0,0,0,0,0]},        
+        'ResultsChap2': { 'title': 'Capítulo 2 - Capital de Trabajo',
+            'variables': [
+                "Dias_Cuentas_X_Cobrar", "Dias_Inventario", "Dias_Cuentas_X_Pagar", "Dias_Capital_de_Trabajo",
+                "Capital_de_Trabajo", "Capital_de_Trabajo_por_100Dlls", "Rotacion_Capital_de_Trabajo",
+                "Flujo_Efectivo_Marginal", "Razon_Corriente"],
+            'format': [0,0,0,0,0,0,0,0,0]},
+        'ResultsChap3': { 'title': 'Capítulo 3 - Otro Capital',
+            'variables': [
+                "Otro_Capital", "Otro_Capital_Perc", "Rotacion_Otro_Capital", "Activos_Operativos_Netos",
+                "Activos_Operativos_Netos_Perc", "Rotacion_Activos", "Retorno_Sobre_Capital_Perc",
+                "Retorno_Sobre_Total_de_Activos_Perc", "Retorno_Sobre_Patrimonio_Perc"],
+            'format': [0,0,0,0,0,0,0,0,0]},   
+        'ResultsChap4': { 'title': 'Capítulo 4 - Financiamiento',
+            'variables': [
+                "Flujo_Efectivo_Marginal", "Flujo_Efectivo_Operacional", "Beneficio_Efectivo_Operacional", "Flujo_Efectivo_Neto",
+                "Deuda_Neta", "Deuda_a_Capital", "Deuda_Neta_a_Capital_Social",
+                "Cobertura_de_Intereses", "Repago_de_Deuda"],
+            'format': [0,0,0,0,0,0,0,0,0]},   
+            }
+    for section, cfg in Fin_Statements.items():
+        tables[section] = generate_financial_statements_table_from_df(df_raw, cfg)
+#---------------------------------------------------
+def generate_report(df_raw, selected_sections, Usuario, Company_Name):
+    #### MANEJO DE DATA FRAME
     ValorObjetivo = df_raw.iloc[2, 1]
     Ajuste= df_raw.iloc[3, 1]
     # Drop first 5 rows
@@ -1768,435 +2183,18 @@ def df_raw_SETUP(df_raw):
     # Ensure column names are properly formatted for Jinja2
     df_raw.columns = df_raw.columns.astype(str)
     df_raw.index = df_raw.index.astype(str)  # Convert index to strings
-# ========= SECCIONES =============
-### RESUMEN
-def Resumen (df_raw):
-    #-----------------------------------------------------------
-    table_configs = {                                            #========= RESUMEN
-        "Periodo de Reportes": ["Periodo", "Duracion"],
-        "Estado de Resultados": ["Ingresos", "Margen_Bruto", "Utilidad_Operacional", "Utilidad_Neta"],
-        "Otra Información": ["Depreciacion_Y_Amortizacion", "Intereses_Pagados", "Ingresos_o_Gastos_Extraordinarios","Distribuciones_Dividendos"],
-        "Activos": ["Total_Activos", "Efectivo", "Cuentas_X_Cobrar", "Inventario", "Activos_Corrientes","Activos_No_Corrientes"],
-        "Pasivos": ["Total_Pasivos", "Cuentas_X_Pagar", "Pasivos_CP"],
-        "Financiamiento": ["Prestamos_Bancarios_CP", "Prestamos_Bancarios_LP"]}
-    for table_name, variables in table_configs.items():
-        tables[table_name] = generate_jinja_table(df_raw, table_name, variables)
-    Single_Var_Table_Data =  {
-        "Rendimiento": {
-            "variables":["Ingresos", "Margen_Bruto_Perc", "Utilidad_Operacional_Perc", "Utilidad_Neta_Perc"],
-            "diff_logic":[0,0,0,0]},
-        "Balance": {
-            "variables":["Dias_Cuentas_X_Cobrar", "Dias_Inventario", "Dias_Cuentas_X_Pagar", "Dias_Capital_de_Trabajo"],
-            "diff_logic":[1,1,0,1]},
-        "FlujodeEfectivo": {
-            "variables": ["Efectivo", "Prestamos_Bancarios_CP", "Prestamos_Bancarios_LP", "Flujo_Efectivo_Neto"],
-            "diff_logic":[0,1,1,0]}}
-    for section, varinfo in Single_Var_Table_Data.items():
-        tables[section] = generate_single_var_table(df_transposed, section, varinfo)
-    Stacked_graphs_data = {
-        "CashFlow_Story": {
-            "GraphName": "CashFlow_Story",  # This will generate a file named "total_debt.png"
-            "variables": ["Prestamos_Bancarios_LP","Prestamos_Bancarios_CP"],
-            "colors": ["#2c5b9c", "#44acd3"],}}
-    for graph_name, graph_data in Stacked_graphs_data.items():
-        print(f"Generando Gráficas Apliladas: {graph_name}...")
-        graph_paths = Stacked_graph(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-### CHAP 1
-def Cap1 (df_raw):
-    Bi_Per_Table_Data1 = {                                   #========== CAP 1
-        "Chap1": {
-            "title":["Capítulo 1 - Rentabilidad"],
-            "variables":["Ingresos","Crecimiento_Ingresos_Perc", "Margen_Bruto","Margen_Bruto_Perc","Gastos_Admin","Gastos_Admin_Perc", "Utilidad_Operacional", "Utilidad_Operacional_Perc", "EBITDA", "Utilidad_Neta", "Utilidad_Neta_Perc","Ganancias_Retenidas","Cobertura_de_Intereses"],
-            "diff_logic":[0,0,0,0,1,1,0,0,0,0,0,0,0]}}
-    for chapter, variable_list in Bi_Per_Table_Data1.items():
-        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
-    Grouped_Bar_data1 = {
-        "Profitability_Trends": { #1
-            "GraphName": 'Profitability_Trends',
-            "variables": ["Margen_Bruto_Perc", "Utilidad_Operacional_Perc", "Utilidad_Neta_Perc"],  # 3 variables
-            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}}  # Color mapping  # Equation structure
-    for graph_name, graph_data in Grouped_Bar_data1.items():
-        print(f"Generando Gráficas Apliladas: {graph_name}...")
-        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-    Eq_Bar_graphs_directory = {
-        "Profit_Story": {
-            "GraphName": 'Profit_Story',
-            "variables": ["Ingresos", "Costo_de_Ventas", "Margen_Bruto", "Gastos_Admin", "Utilidad_Operacional"],  # 5 variables
-            "colors": ["#E9989E", "#EA638C", "#C4448C", "#8F3192", "#7F2E90"],  # Color mapping
-            "symbols": ["-", "=", "-", "="],},  # Equation structure
-        "BalanceSheet_Story": {
-            "GraphName": 'BalanceSheet_Story',
-            "variables": ['Patrimonio', 'Activos_Corrientes', 'Activos_Fijos', 'Pasivos_CP','Pasivos_LP'],  # 3 variables
-            "colors": ['#fad36c','#f2b154','#ec8f43','#e66c33','#d35028'],  # Color mapping
-            "symbols": ["=", "+","-","-"],},
-        "Funding_Story": {
-            "GraphName": 'Funding_Story',
-            "variables": ['Patrimonio', 'Deuda_Neta', 'Capital_de_Trabajo', 'Otro_Capital'],  # 3 variables
-            "colors": ['#EC9BA3', '#E54771', '#9B3E97', '#6E2C91'],  # Color mapping
-            "symbols": ["+", "=","+"],}}  # Equation structure
-    for graph_name, graph_data in Eq_Bar_graphs_directory.items():
-        print(f"Generating graph: {graph_name}...")
-        graph_paths = Eq_Bar_graphs(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-    Period_Grouped_Bar_data1 = {
-        "RevenueVScogs": { #1
-            "GraphName": 'RevenueVScogs',
-            "variables": ["Crecimiento_Ingresos_Perc", "Crecimiento_Costo_de_Ventas_Perc"],  # 2 variables
-            "colors": ["#e8e265", "#f7b750"]},
-        "RevenueVSoverhead": { #1
-            "GraphName": 'RevenueVSoverhead',
-            "variables": ['Crecimiento_Ingresos_Perc', 'Crecimiento_Gastos_Admin_Perc'],  # 2 variables
-            "colors": ['#fad36c',"#e69333"]}}
-    for graph_name, graph_data in Period_Grouped_Bar_data1.items():
-        print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-    Summary_Tables1 = { 
-        "Ch1_Profitability": ["Ingresos", "Margen_Bruto", "Utilidad_Operacional", "Utilidad_Neta"]}
-    for section, varlist in Summary_Tables1.items(): 
-        tables[section] = generate_Summary_table(df_raw, section, varlist)
-### CAP 2
-def Cap2 (df_raw):
-    #== Blocks Plots
-    # Get the latest column (i.e., the latest period)
-    latest_period = df_raw.columns[-1]              #============== CAP 2
-    inventory_days = df_raw.at["Inventario_por_100Dlls", latest_period]
-    receivables_days =df_raw.at["Cuentas_X_Cobrar_por_100Dlls", latest_period]
-    payables_days = df_raw.at["Cuentas_X_Pagar_por_100Dlls", latest_period]
-    wc_days = df_raw.at["Capital_de_Trabajo_por_100Dlls", latest_period]
-    fig, ax = plt.subplots(figsize=(3.5, 2.5))
-    ax.axis('off')
-    ax.text(0.0, 0.90, "Capital de Trabajo", fontsize=8, fontweight='bold', color="#3b4a58", ha='left')
-    ax.text(1.0, 0.90, f"{wc_days:.0f}", fontsize=10, fontweight='bold', color="#3b4a58", ha='right')
-    ax.text(0.0, 0.70, "Inventario", fontsize=9, color="gray", ha='left')
-    ax.text(1.0, 0.70, f"{inventory_days:.0f}", fontsize=9, color="gray", ha='right')
-    ax.text(0.0, 0.60, "Ctas. por Cobrar", fontsize=9, color="gray", ha='left')
-    ax.text(1.0, 0.60, f"{receivables_days:.0f}", fontsize=9, color="gray", ha='right')
-    ax.text(0.0, 0.50, "Ctas. por Pagar", fontsize=9, color="gray", ha='left')
-    ax.text(1.0, 0.50, f"{payables_days:.0f}", fontsize=9, color="gray", ha='right')
-    ax.text(0.0, 0.20,
-            f"Por cada $100 adicionales de Ingreso,\nInviertes ${wc_days:.0f} en Capital de Trabajo",
-            fontsize=8, color="gray", ha='left')
-    os.makedirs("plots", exist_ok=True)
-    camino = os.path.join("plots", f"ResumenCapTrabajo.svg")
-    plt.tight_layout()
-    plt.savefig(camino, format="svg", bbox_inches="tight")
-    plt.close()
-    graphs.update({"ResumenCapTrabajo": camino})  # Merge all generated paths into `graphs`
-    Blocks_Plot_data = {
-        "Working_Capital_Blocks": {
-            "GraphName": 'Working_Capital_Blocks',
-            "variables": ['Inventario', 'Cuentas_X_Cobrar', 'Cuentas_X_Pagar', 'Ingresos'],
-            "colors": ["#f5989d", "#ea4c89", "#9b2fae", "#4c0070"]}}
-    for name, graph_data in Blocks_Plot_data.items():
-        print(f"Generating: {name}")
-        blockspath = Blocks_Plot(graph_data, df_transposed)
-        graphs.update(blockspath)  # Merge all generated paths into `graphs`
-
-    Bi_Per_Table_Data2 = { #Cols:Last_Period, Current_Period , 'Movement' 
-        "Chap2": {
-            "title":["Capítulo 2 - Capital de Trabajo"],
-            "variables":["Dias_Cuentas_X_Cobrar", "Dias_Inventario", "Dias_Cuentas_X_Pagar", "Dias_Capital_de_Trabajo","Capital_de_Trabajo", "Capital_de_Trabajo_por_100Dlls","Rotacion_Capital_de_Trabajo","Flujo_Efectivo_Marginal","Razon_Corriente"],
-            "diff_logic":[1,1,0,1,1,1,0,0,0]}}
-    for chapter, variable_list in Bi_Per_Table_Data2.items():
-        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
-
-    Grouped_Bar_data2 = {
-        "Working_Capital_Trends": {
-            "GraphName": 'Working_Capital_Trends',
-            "variables": ['Dias_Cuentas_X_Pagar', 'Dias_Inventario', 'Dias_Cuentas_X_Cobrar'],  # 3 variables
-            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]},  # Color mapping
-        "Investment_WC_per100DLLS": {
-            "GraphName": "Investment_WC_per100DLLS",  # This will generate a file named "total_debt.png"
-            "variables": ["Cuentas_X_Pagar_por_100Dlls","Inventario_por_100Dlls","Cuentas_X_Cobrar_por_100Dlls"],
-            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}}
-    for graph_name, graph_data in Grouped_Bar_data2.items():
-        print(f"Generando Gráficas Apliladas: {graph_name}...")
-        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-    Period_Grouped_Bar_data2 = {
-        "GrossMarginVSwc":  { #2
-            "GraphName": 'GrossMarginVSwc',
-            "variables": ['Margen_Bruto_por_100Dlls', 'Capital_de_Trabajo_por_100Dlls'],  # 2 variables
-            "colors": ["#d7a42e","#e18216"]}}  # Color mapping
-    for graph_name, graph_data in Period_Grouped_Bar_data2.items():
-        print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-
-    Summary_Tables2 = { 
-        "Ch2_WC": ["Cuentas_X_Cobrar", "Inventario", "Cuentas_X_Pagar", "Capital_de_Trabajo"]}
-    for section, varlist in Summary_Tables2.items(): 
-        tables[section] = generate_Summary_table(df_raw, section, varlist)
-    #== WC Time Line
-    nombre_linea= 'working_capital_timeline'
-    Line_Path = plot_working_capital_timeline(df_trans_latest_two, ("Este Periodo", "Periodo Anterior"),nombre_linea)
-    print(f"Generating Timeline: {nombre_linea}...")
-    graphs.update(Line_Path)  # Merge all generated paths into `graphs`
-### CAP 3
-def Cap3 (df_raw):
-    Bi_Per_Table_Data3 = {                                       #========== CAP 3
-        "Chap3": {
-            "title":["Capítulo 3 - Otro Capital"],
-            "variables":["Otro_Capital", "Otro_Capital_Perc", "Retorno_Sobre_Otro_Capital", "Activos_Operativos_Netos", "Activos_Operativos_Netos_Perc", "Rotacion_Activos",  'Retorno_Sobre_Capital_Perc','Retorno_Sobre_Total_de_Activos_Perc','Retorno_Sobre_Patrimonio_Perc'],
-            "diff_logic":[1,1,0,0,1,0,0,0,0]}}
-    for chapter, variable_list in Bi_Per_Table_Data3.items():
-        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
-    Grouped_Bar_data3 = {
-        "Return_on_Capital_Trends": {
-            "GraphName": 'Return_on_Capital_Trends',
-            "variables": ['Utilidad_Operacional_Perc', 'Rotacion_Activos', 'Retorno_Sobre_Capital_Perc'],  # 3 variables
-            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}} # Color mapping
-    for graph_name, graph_data in Grouped_Bar_data3.items():
-        print(f"Generando Gráficas Apliladas: {graph_name}...")
-        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-    #== 2 Blocks Plots
-    ReturnOnCapital_data = {
-        "Return_on_Capital": {
-            "GraphName": "Return_on_Capital",
-            "variables": [
-                "Utilidad_Operacional",  # 0
-                "Ingresos",              # 1
-                "Ingresos",              # 2
-                "Capital_de_Trabajo",    # 3
-                "Otro_Capital",          # 4
-                "Utilidad_Operacional",  # 5
-                "Activos_Operativos_Netos"  # 6
-            ],
-            "colors": [
-                "#f5989d", "#f5989d", "#f5989d",
-                "#ea4c89", "#9b2fae", "#4c0070", "#6c3483"
-            ]
-        }
-    }
-    for name, graph_data in ReturnOnCapital_data.items():
-        print(f"Generating: {name}")
-        pathdict = ReturnOnCapital_Plot(graph_data, df_raw)
-        graphs.update(pathdict)
-    Summary_Tables3 = { 
-        "Ch3_OtherCap": ["Activos_Fijos", "Otros_Activos", "Otros_Pasivos", "Otro_Capital"]}
-    for section, varlist in Summary_Tables3.items(): 
-        tables[section] = generate_Summary_table(df_raw, section, varlist)
-### CAP 4
-def Cap4 (df_raw):
-    latest_period = df_raw.columns[-1]
-    Cash_vs_Profit_Dict = {                                     #===========CAP 4
-        "1": {
-            "Profit":["Ingresos","Costo_de_Ventas","Margen_Bruto"],
-            "cash": ["Efectivo_de_Clientes","Efectivo_a_Proveedores","Beneficio_Efectivo_Bruto"],
-            "Inverse_logic": ['0','1','0']},
-        "2": {
-            "Profit":["Gastos_Admin_LessDA","Beneficio_Operativo_Efectivo"],
-            "cash": ["Gastos_Admin_LessDA","Flujo_Efectivo_Operativo"]},
-        "3": {
-            "Profit":[None],
-            "cash": ["Salidas_Otro_Efectivo"]},
-        "4": {
-            "Profit":["Intereses_Pagados","Impuestos_Pagados","Ingresos_o_Gastos_Extraordinarios","Distribuciones_Dividendos","Depreciacion_Y_Amortizacion",None,None,"Utilidad_Retenida"],
-            "cash": ["Intereses_Pagados","Impuestos_Pagados","Ingresos_o_Gastos_Extraordinarios","Distribuciones_Dividendos","Inversion_Activos_Fijos","Inversion_Otros_Activos_Netos","Capital_Inyectado","Flujo_Efe_Fin"]}}
-    tables["Cash_vs_Profit"] = generate_cash_vs_profit_table(df_raw, Cash_vs_Profit_Dict, title="Utilidad vs Flujo de Efectivo")
-    Cashflow_Chapters = {
-        "Capítulo 1": ["Utilidad_Retenida"],
-        "Capítulo 2": ["Inversion_Capital_de_Trabajo"],
-        "Capítulo 3": ["Inversion_Otro_Capital",]}
-    tables["Cashflow_Summary"] = generate_cashflow_chapter_table_from_df(
-        df_transposed,
-        Cashflow_Chapters,
-        current_period=latest_period,
-        title="")
-    Bi_Per_Table_Data4 = {  
-        "Chap4": {
-            "title":["Capítulo 4 - Financiamiento"],
-            "variables":["Flujo_Efectivo_Marginal", "Flujo_Efectivo_Operacional", "Beneficio_Efectivo_Operacional", "Flujo_Efectivo_Neto", "Deuda_Neta", "Deuda_Neta_a_Capital_Social", "Deuda_a_Capital","Cobertura_de_Intereses","Repago_de_Deuda"],
-            "diff_logic":[0,0,0,1,1,1,1,0,1]}}
-    for chapter, variable_list in Bi_Per_Table_Data4.items():
-        tables[chapter] = generate_bi_period_table(df_transposed, variable_list)
-    Grouped_Bar_data4= {
-        "Funding_Trends": {
-            "GraphName": "Funding_Trends",  # This will generate a file named "total_debt.png"
-            "variables": ["Efectivo","Deuda_Total","Patrimonio"],
-            "colors": ["#84cbcc", "#44acd3", "#3b84b4", "#2c5b9c"]}}  # Color mapping
-    for graph_name, graph_data in Grouped_Bar_data4.items():
-        print(f"Generando Gráficas Apliladas: {graph_name}...")
-        graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-
-    Period_Grouped_Bar_data4 = {
-        "OperatingCash": { #4
-            "GraphName": 'OperatingCash',
-            "variables": ['Beneficio_Efectivo_Operacional', 'Flujo_Efectivo_Operacional'],  # 2 variables
-            "colors": ["#ecb944","#e0642a"]}}
-    for graph_name, graph_data in Period_Grouped_Bar_data4.items():
-        print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-
-    Summary_Tables4 = { 
-        "Ch4_Fund": ["Efectivo", "Deuda_Total", "Patrimonio", "Financiamiento_Total"],}
-    for section, varlist in Summary_Tables4.items(): 
-        tables[section] = generate_Summary_table(df_raw, section, varlist)
-### VALUACION y Poder del UNO
-def Valuacion_y_Poder_del_Uno(df_raw):
-    #============= Poder del UNO==========#
-    df_power = build_power_of_one(df_raw)
-    df_power_transposed = df_power.T
-    weights = [4, 3, 2, 1]
-    available_columns = df_raw.columns[-len(weights):]  # Toma solo las últimas N columnas disponibles
-    used_weights = weights[-len(available_columns):]    # Ajusta los pesos si hay menos columnas
-    ebitda_values = df_raw.loc["EBITDA", available_columns]
-    EBITDA_Promedio_Ponderada = (ebitda_values * used_weights).sum() / sum(used_weights)
-    EBITDA_Ajustada = (EBITDA_Promedio_Ponderada+Ajuste)
-    #============== Valuacion ============#
-    df_Valuacion= build_Valuation(df_raw, df_power)
-    label_map = { # Diccionario de etiquetas Poder UNO
-        "Posicion_Actual": "Tu Posicion Actual",
-        "Incre_Precio_Perc": "Incremento en el Precio  %",
-        "Incre_Volumen_Perc": "Incremento en el Volumen %",
-        "Reduc_Costo_de_Ventas_Perc": "Reduccion del Costo de Ventas %",
-        "Reduc_Gastos_Admin_Perc": "Reduccion de Gastos Administrativos %",
-        "Reduc_Cuentas_X_Cobrar_Dias": "Reduccion en Dias de Cuentas X Cobrar",
-        "Reduc_Inventario_Dias": "Reduccion en Dias de Inventario",
-        "Incre_Cuentas_X_Pagar_Dias": "Reduccion en Dias de Cuentas X Pagar",
-        "Impacto_Poder_UNO": "Impacto de Tu Poder del Uno",
-        "Posicion_Ajustada": "Tu Posicion Ajustada"}
-    tables["Poder_UNO"] = generate_power_of_one_blocks(df_power, label_map)
-    Period_Grouped_Bar_dataUNO = {
-        "ImpactoUNO": {
-            "df": df_power_transposed,
-            "periodos":['Flujo de efectivo neto','Utilidad Operacional'],
-            "GraphName": 'ImpactoUNO',
-            "variables": ['Posicion_Actual', 'Posicion_Ajustada'],  # 2 variables
-            "colors": ["#ecb944","#e0642a"]}} 
-    for graph_name, graph_data in Period_Grouped_Bar_dataUNO.items():
-        print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
-        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
-
-    weights = [4, 3, 2, 1]
-    available_columns = df_raw.columns[-len(weights):]  # Toma solo las últimas N columnas disponibles
-    used_weights = weights[-len(available_columns):]    # Ajusta los pesos si hay menos columnas
-    ebitda_values = df_raw.loc["EBITDA", available_columns]
-    EBITDA_Promedio_Ponderada = (ebitda_values * used_weights).sum() / sum(used_weights)
-    EBITDA_Ajustada = (EBITDA_Promedio_Ponderada+Ajuste)
-    Valuation_table = {                                         #============VALUACION
-        "1Val":{"Tu Valor del Negocio Actual": ["Múltiplo de Ganancias", "Valor Bruto del Negocio", "Deuda Total", "Valor Actual de tu Negocio"],
-                "bold":[0,0,0,1]},
-        "2Val":{"Tu Valor con el Poder del Uno": ["Múltiplo de Ganancias", "Incremento de Precio %","Incremento de Volumen %","Reducción del Costo de Ventas %","Reducción de Gastos Admin %","Impacto de la Ganancia en la Valoración","Reducción en Días de Cuentas por Cobrar","Reducción en Días de Inventario","Aumento en Días de Cuentas por Pagar","Impacto del Efectivo en la Valoración","Impacto de tu Poder del Uno", "Valor del Negocio Mejorado"],
-                "bold":[0,0,0,0,0,1,0,0,0,1,1,1]},
-        "3Val":{"Tu Indicador de Valor Mejorado":["Múltiplo de Ganancias","Valor Actual de tu Negocio", "Impacto de tu Poder del Uno", "Valor del Negocio Mejorado"],
-                "bold":[0,0,0,1]}, 
-        "4Val":{"Tu Valor Objetivo del Negocio":["Múltiplo de Ganancias", "Valor Objetivo del Negocio", "Valor Actual de tu Negocio", "Brecha de Valor Actual"],
-                "bold":[0,0,0,1]}, 
-        "5Val":{"Tu Valor del Negocio Mejorado":["Múltiplo de Ganancias", "Valor Objetivo del Negocio", "Valor del Negocio Mejorado","Brecha de Valor Mejorada"],
-                "bold":[0,0,0,1]}}
-    for section, details in Valuation_table.items():
-        tables[section] = generate_valuation_table(df_Valuacion, {section: details})
-    graphs.update(plot_business_valuation_stacked(df_Valuacion))
-    tables["Valuation_Params"] = generate_valuation_parameters_table(
-        df_Valuacion,
-        EBITDA_Promedio_Ponderada=EBITDA_Promedio_Ponderada,
-        Ajuste=Ajuste,
-        EBITDA_Ajustada=EBITDA_Ajustada)
-### Crecimiento Sostenible
-def Crecimiento_Sostenible(df_raw):
-    latest_period = df_raw.columns[-1]    
-    #== Shortfall legend
-    legend_path = create_shortfall_legend(round(df_raw.at["Flujo_Efe_Fin", latest_period],0))  # genera la versión en rojo
-    graphs["shortfall_legend"] = legend_path
-    #== Shorfall Sheet
-    resultados = calcular_resumen_financiero(df_raw)
-    sustainable_data = {
-        "left": {
-            'Variables':[
-                ("Si incrementas tus Ingresos por", "+", resultados["incremento_ingresos"]),
-                ("Menos Costo de ventas de", "-", resultados["costo_ventas"]),
-                ("Tu margen Bruto será", "=", resultados["margen_bruto"]),
-                ("Menos Costos Administrativos", "-", resultados["gastos_admin"]),
-                ("Tu Utilidad Operativa será", "=", resultados["utilidad_operativa"]),
-                ("Menos Ingresos/Gastos Extraordinarios", "-", resultados["extraordinarios"]),
-                ("Menos Intereses Pagados", "-", resultados["intereses"]),
-                ("Menos Impuestos", "-", resultados["impuestos"]),
-                ("Menos Dividendos", "-", resultados["dividendos"]),
-                ("Tu Utilidad Retenida será", "=", resultados["utilidad_retenida"])],
-            'format':[0,0,0,0,0,1,1,1,1,0]},
-        "right": {
-            'Variables':[
-                ("Tu inversión en Cuentas por Cobrar será", "+", resultados["cxc"]),
-                ("Tu inversión en Inventario será", "+", resultados["inventario"]),
-                ("Provisto por Cuentas por Pagar", "-", resultados["cxp"]),
-                ("Requerirás Capital de Trabajo de", "=", resultados["capital_trabajo"]),
-                (f"Tu razon Deuda/Capital es {resultados['deuda_capital']}", None, None),
-                (f"Puedes pedir \${resultados['deuda_capital']} por cada \$1 de Utilidad Retenida", None, None),
-                ("Tu capacidad de fondearte será", "=", resultados["capacidad_fondeo"])],
-            'format':[0,0,0,0,1,1,2]},
-        "bottom": ("Tendrás una necesidad de financiamiento de", "=", resultados["shortfall"])}
-    sustainable_growth_path = create_sustainable_growth_graph(sustainable_data, output_path="plots/sustainable_growth.svg")
-    graphs["sustainable_growth"] = sustainable_growth_path
-    #---------------------------------------------------------#
-### PROYECCIONES
-def Proyecciones (df_raw):
-    Fin_Statements = {                                         #============PROYECCIONES
-        'Results_Statement': { 'title': 'Estado de Resultados',
-            'variables': [
-                "Ingresos", "Costo_de_Ventas", "Margen_Bruto", "Gastos_Admin",
-                "Utilidad_Operacional", "Intereses_Pagados", "Ingresos_o_Gastos_Extraordinarios",
-                "Utilidad_Neta_Antes_de_Impuestos", "Impuestos_Pagados",
-                "Utilidad_Neta", "Distribuciones_Dividendos", "Utilidad_Retenida"],
-            'format': [0,0,1,0,1,0,0,1,0,1,0,1]},
-        'Balance_Sheet': { 'title': 'Balance General',
-            'variables': [
-                "Efectivo", "Cuentas_X_Cobrar", "Inventario", "Otros_Activos_Corrientes",
-                "Activos_Corrientes", "Activos_Fijos", "Otros_Activos_No_Corrientes",
-                "Activos_No_Corrientes", "Total_Activos", "Cuentas_X_Pagar",
-                "Prestamos_Bancarios_CP", "Otros_Pasivos_CP", "Pasivos_CP",
-                "Prestamos_Bancarios_LP", "Otros_Pasivos_LP", "Pasivos_LP",
-                "Total_Pasivos", "Patrimonio"],
-            'format': [0,0,0,0,1,0,0,1,1,0,0,0,1,0,0,1,1,1]},
-        'ResultsChap1': { 'title': 'Capítulo 1 - Rentabilidad',
-            'variables': [
-                "Ingresos", "Crecimiento_Ingresos_Perc", "Margen_Bruto", "Margen_Bruto_Perc",
-                "Gastos_Admin", "Gastos_Admin_Perc", "Utilidad_Operacional",
-                "Utilidad_Operacional_Perc", "EBITDA", "Utilidad_Neta",
-                "Utilidad_Neta_Perc", "Utilidad_Retenida", "Cobertura_de_Intereses"],
-            'format': [0,0,0,0,0,0,0,0,0,0,0,0,0]},        
-        'ResultsChap2': { 'title': 'Capítulo 2 - Capital de Trabajo',
-            'variables': [
-                "Dias_Cuentas_X_Cobrar", "Dias_Inventario", "Dias_Cuentas_X_Pagar", "Dias_Capital_de_Trabajo",
-                "Capital_de_Trabajo", "Capital_de_Trabajo_por_100Dlls", "Rotacion_Capital_de_Trabajo",
-                "Flujo_Efectivo_Marginal", "Razon_Corriente"],
-            'format': [0,0,0,0,0,0,0,0,0]},
-        'ResultsChap3': { 'title': 'Capítulo 3 - Otro Capital',
-            'variables': [
-                "Otro_Capital", "Otro_Capital_Perc", "Rotacion_Otro_Capital", "Activos_Operativos_Netos",
-                "Activos_Operativos_Netos_Perc", "Rotacion_Activos", "Retorno_Sobre_Capital_Perc",
-                "Retorno_Sobre_Total_de_Activos_Perc", "Retorno_Sobre_Patrimonio_Perc"],
-            'format': [0,0,0,0,0,0,0,0,0]},   
-        'ResultsChap4': { 'title': 'Capítulo 4 - Financiamiento',
-            'variables': [
-                "Flujo_Efectivo_Marginal", "Flujo_Efectivo_Operacional", "Beneficio_Efectivo_Operacional", "Flujo_Efectivo_Neto",
-                "Deuda_Neta", "Deuda_a_Capital", "Deuda_Neta_a_Capital_Social",
-                "Cobertura_de_Intereses", "Repago_de_Deuda"],
-            'format': [0,0,0,0,0,0,0,0,0]},   
-            }
-    for section, cfg in Fin_Statements.items():
-        tables[section] = generate_financial_statements_table_from_df(df_raw, cfg)
-#---------------------------------------------------
-def generate_report(df_raw, selected_sections):
     if "Resumen" in selected_sections:
         Resumen(df_raw)
     if "Capítulo 1 - Rentabilidad" in selected_sections:
         Cap1(df_raw)
     if "Capítulo 2 - Capital de Trabajo" in selected_sections:
-        Cap2(df_raw)
+        Cap2(df_raw, df_trans_latest_two)
     if "Capítulo 3 - Otro Capital" in selected_sections:
         Cap3(df_raw)
     if "Capítulo 4 - Financiamiento" in selected_sections:
         Cap4(df_raw)
     if "Poder del Uno" in selected_sections or "Valuación" in selected_sections:
-        Valuacion_y_Poder_del_Uno(df_raw)
+        Valuacion_y_Poder_del_Uno(df_raw, ValorObjetivo, Ajuste)
     if "Crecimiento Sostenible" in selected_sections:
         Crecimiento_Sostenible(df_raw)
     if "Resultados & Proyecciones" in selected_sections:
@@ -2335,7 +2333,7 @@ def upload_page():
                         if df_raw is None or df_raw.empty:
                             st.error("❌ El archivo no fue leído correctamente.")
                             return
-                        generate_report(df_raw, selected_sections)
+                        generate_report(df_raw, selected_sections, Usuario, Company_Name)
                     else:
                         st.warning("⚠️ Debes seleccionar al menos una sección para generar el reporte.")
             st.dataframe(df_raw)
