@@ -116,6 +116,7 @@ logoP_path = "plots/logopequeño.jpeg"  # Ensure the correct file location
 brackets_path = "plots/brackets.jpeg"  # Ensure the correct file location
 Ajuste = 0
 df_raw = pd.DataFrame()
+global df_transposed
 df_transposed = pd.DataFrame()
 df_trans_latest_two = pd.DataFrame()
 EBITDA_Ajustada = 0
@@ -169,10 +170,10 @@ def build_power_of_one(df_raw):
     Returns:    - Power_of_ONE_df (pd.DataFrame): Table with impact from pricing, volume, cost, and WC levers"""
     latest_col = df_raw.columns[-1]
     Power_of_ONE_df = pd.DataFrame(columns=["Flujo de efectivo neto", "Utilidad Operacional"], index=[
-        "Posición_Actual", "Incre_Precio_Perc", "Incre_Volumen_Perc",
+        "Posicion_Actual", "Incre_Precio_Perc", "Incre_Volumen_Perc",
         "Reduc_Costo_de_Ventas_Perc", "Reduc_Gastos_Admin_Perc",
         "Reduc_Cuentas_X_Cobrar_Dias", "Reduc_Inventario_Dias",
-        "Incre_Cuentas_X_Pagar_Dias", "Impacto_Poder_UNO", "Pósicion_Ajustada"])
+        "Incre_Cuentas_X_Pagar_Dias", "Impacto_Poder_UNO", "Posicion_Ajustada"])
     # Define movement assumptions
     movimientos = {
         "Incre_Precio_Perc": 0.01,
@@ -192,7 +193,7 @@ def build_power_of_one(df_raw):
     dias_cxc = df_raw.at["Dias_Cuentas_X_Cobrar", latest_col]
     dias_inv = df_raw.at["Dias_Inventario", latest_col]
     dias_cxp = df_raw.at["Dias_Cuentas_X_Pagar", latest_col]
-    # Posición actual
+    # Posicion actual
     Power_of_ONE_df.at["Posicion_Actual", "Utilidad Operacional"] = utilidad_op
     Power_of_ONE_df.at["Posicion_Actual", "Flujo de efectivo neto"] = flujo_efectivo
     # Incremento Precio
@@ -227,7 +228,7 @@ def build_power_of_one(df_raw):
         "Reduc_Inventario_Dias", "Incre_Cuentas_X_Pagar_Dias"]
     Power_of_ONE_df.at["Impacto_Poder_UNO", "Flujo de efectivo neto"] = Power_of_ONE_df.loc[rows, "Flujo de efectivo neto"].sum()
     Power_of_ONE_df.at["Impacto_Poder_UNO", "Utilidad Operacional"] = Power_of_ONE_df.loc[rows, "Utilidad Operacional"].sum()
-    # Posición ajustada
+    # Posicion ajustada
     Power_of_ONE_df.at["Posicion_Ajustada", "Flujo de efectivo neto"] = \
         Power_of_ONE_df.at["Impacto_Poder_UNO", "Flujo de efectivo neto"] + flujo_efectivo
     Power_of_ONE_df.at["Posicion_Ajustada", "Utilidad Operacional"] = \
@@ -267,7 +268,7 @@ def build_Valuation(df_raw, df_power, EBITDA_Ajustada, ValorObjetivo):
     ReduAR = df_power.at["Reduc_Cuentas_X_Cobrar_Dias", "Flujo de efectivo neto"]
     IncrAP = df_power.at["Incre_Cuentas_X_Pagar_Dias", "Flujo de efectivo neto"]
     ReduInv = df_power.at["Reduc_Inventario_Dias", "Flujo de efectivo neto"]
-    # Posición actual
+    # Posicion actual
     Valuacion.loc["Deuda Total"] = deudas
     Valuacion.loc["Múltiplo de Ganancias"] = np.array([
     float(col) if (isinstance(col, int) or (isinstance(col, str) and col.isdigit())) else np.nan
@@ -420,7 +421,7 @@ def Blocks_Plot(graph_data, df_transposed, output_dir="plots"):
     graphs[graph_name] = path
     return {graph_name: path}
 #== Grouped Bar Graphs
-def Period_Grouped_bars(graph_data, output_dir="plots"):
+def Period_Grouped_bars(graph_data, df_transposed,output_dir="plots"):
     df = graph_data.get("df", df_transposed)
     variables = graph_data["variables"]
     colors = graph_data["colors"]
@@ -523,7 +524,7 @@ def Eq_Bar_graphs(graph_data, output_dir="plots"):
     graphs[graph_name] = path
     return {graph_name: path}
 #== Stacked Variables X Periods Bar Graphs
-def Stacked_graph(graph_data, output_dir="plots"):
+def Stacked_graph(graph_data, df_transposed, output_dir="plots"):
     """   Create a stacked bar chart from financial data.
     Parameters:
     - graph_data (dict): {
@@ -853,14 +854,14 @@ def create_sustainable_growth_graph(data_dict, output_path="plots/sustainable_gr
     plt.close()
     print('Generating Sustainable Growth graph...')
     return output_path
-def ReturnOnCapital_Plot(graph_data, df_transposed, output_dir="plots"):
+def ReturnOnCapital_Plot(graph_data, df_raw, output_dir="plots"):
     """    Generates a Return on Capital layout with stacked blocks for visual storytelling."""
     variables = graph_data["variables"]
     colors = graph_data["colors"]
     graph_name = graph_data["GraphName"]
     # Get latest period
-    latest_period = df_transposed.columns[-1]
-    values = [df_transposed.at[var, latest_period] if var in df_transposed.index else None for var in variables]
+    latest_period = df_raw.columns[-1]
+    values = [df_transposed.at[var, latest_period] if var in df_raw.index else None for var in variables] # REVISAR
     # Setup plot
     fig, ax = plt.subplots(figsize=(10, 3.5))
     ax.set_xlim(0, 1000)
@@ -1293,9 +1294,9 @@ def generate_Summary_table(df, table_title, variables):
     return html
 def generate_power_of_one_blocks(df, label_map, title="Tu Poder del Uno"):
     """    Genera 3 bloques de tabla HTML con formato Power of One:
-    1. Posición Actual
+    1. Posicion Actual
     2. Impactos del Poder del Uno
-    3. Posición Ajustada
+    3. Posicion Ajustada
     Parameters:
     - df: Power_of_ONE_df (con columnas 'Movimiento', 'Flujo de efectivo neto', 'Utilidad Operacional')
     - label_map: dict de {variable: etiqueta}
@@ -1306,7 +1307,7 @@ def generate_power_of_one_blocks(df, label_map, title="Tu Poder del Uno"):
         if isinstance(val, (float, int)): return f"{val:,.{digits}f}"
         return str(val)
     html = ""
-    # -------------------- Tabla 1: Posición Actual --------------------
+    # -------------------- Tabla 1: Posicion Actual --------------------
     html += '<table style="width: 100%;">'
     html += "<thead><tr><th></th><th></th><th style='text-align: right;'>Flujo de Efectivo Neto</th><th style='text-align: right;'>Utilidad Operacional</th></tr></thead><tbody>"
     row = "Posicion_Actual"
@@ -1326,7 +1327,7 @@ def generate_power_of_one_blocks(df, label_map, title="Tu Poder del Uno"):
             html += f"<td style='text-align: right;'>{fmt(df.at[row, 'Flujo de efectivo neto'])}</td>"
             html += f"<td style='text-align: right;'>{fmt(df.at[row, 'Utilidad Operacional'])}</td></tr>"
     html += "</tbody></table><br>"
-    # -------------------- Tabla 3: Posición Ajustada --------------------
+    # -------------------- Tabla 3: Posicion Ajustada --------------------
     html += '<table style="width: 100%;">'
     html += "<thead><tr><th></th><th></th><th style='text-align: right;'>Flujo de Efectivo Neto</th><th style='text-align: right;'>Utilidad Operacional</th></tr></thead><tbody>"
     row = "Posicion_Ajustada"
@@ -1578,7 +1579,7 @@ def generate_valuation_parameters_table(df_Valuacion, EBITDA_Promedio_Ponderada,
 
 # ========= SECCIONES =============
 ### RESUMEN
-def Resumen (df_raw):
+def Resumen (df_raw, df_transposed):
     #-----------------------------------------------------------
     table_configs = {                                            #========= RESUMEN
         "Periodo de Reportes": ["Periodo", "Duracion"],
@@ -1608,10 +1609,26 @@ def Resumen (df_raw):
             "colors": ["#2c5b9c", "#44acd3"],}}
     for graph_name, graph_data in Stacked_graphs_data.items():
         print(f"Generando Gráficas Apliladas: {graph_name}...")
-        graph_paths = Stacked_graph(graph_data)  # Generate graphs
+        graph_paths = Stacked_graph(graph_data, df_transposed)  # Generate graphs
+        graphs.update(graph_paths)  # Merge all generated paths into `graphs`
+    Eq_Bar_graphs_directoryResumen = {
+        "Profit_Story": {
+            "GraphName": 'Profit_Story',
+            "variables": ["Ingresos", "Costo_de_Ventas", "Margen_Bruto", "Gastos_Admin", "Utilidad_Operacional"],  # 5 variables
+            "colors": ["#E9989E", "#EA638C", "#C4448C", "#8F3192", "#7F2E90"],  # Color mapping
+            "symbols": ["-", "=", "-", "="],},  # Equation structure
+        "BalanceSheet_Story": {
+            "GraphName": 'BalanceSheet_Story',
+            "variables": ['Patrimonio', 'Activos_Corrientes', 'Activos_Fijos', 'Pasivos_CP','Pasivos_LP'],  # 3 variables
+            "colors": ['#fad36c','#f2b154','#ec8f43','#e66c33','#d35028'],  # Color mapping
+            "symbols": ["=", "+","-","-"],}}
+
+    for graph_name, graph_data in Eq_Bar_graphs_directoryResumen.items():
+        print(f"Generating graph: {graph_name}...")
+        graph_paths = Eq_Bar_graphs(graph_data)  # Generate graphs
         graphs.update(graph_paths)  # Merge all generated paths into `graphs`
 ### CHAP 1
-def Cap1 (df_raw):
+def Cap1 (df_raw, df_transposed):
     Bi_Per_Table_Data1 = {                                   #========== CAP 1
         "Chap1": {
             "title":["Capítulo 1 - Rentabilidad"],
@@ -1629,21 +1646,12 @@ def Cap1 (df_raw):
         graph_paths = Grouped_Bar_Graph(graph_data)  # Generate graphs
         graphs.update(graph_paths)  # Merge all generated paths into `graphs`
     Eq_Bar_graphs_directory = {
-        "Profit_Story": {
-            "GraphName": 'Profit_Story',
-            "variables": ["Ingresos", "Costo_de_Ventas", "Margen_Bruto", "Gastos_Admin", "Utilidad_Operacional"],  # 5 variables
-            "colors": ["#E9989E", "#EA638C", "#C4448C", "#8F3192", "#7F2E90"],  # Color mapping
-            "symbols": ["-", "=", "-", "="],},  # Equation structure
-        "BalanceSheet_Story": {
-            "GraphName": 'BalanceSheet_Story',
-            "variables": ['Patrimonio', 'Activos_Corrientes', 'Activos_Fijos', 'Pasivos_CP','Pasivos_LP'],  # 3 variables
-            "colors": ['#fad36c','#f2b154','#ec8f43','#e66c33','#d35028'],  # Color mapping
-            "symbols": ["=", "+","-","-"],},
         "Funding_Story": {
             "GraphName": 'Funding_Story',
             "variables": ['Patrimonio', 'Deuda_Neta', 'Capital_de_Trabajo', 'Otro_Capital'],  # 3 variables
             "colors": ['#EC9BA3', '#E54771', '#9B3E97', '#6E2C91'],  # Color mapping
             "symbols": ["+", "=","+"],}}  # Equation structure
+
     for graph_name, graph_data in Eq_Bar_graphs_directory.items():
         print(f"Generating graph: {graph_name}...")
         graph_paths = Eq_Bar_graphs(graph_data)  # Generate graphs
@@ -1659,14 +1667,14 @@ def Cap1 (df_raw):
             "colors": ['#fad36c',"#e69333"]}}
     for graph_name, graph_data in Period_Grouped_Bar_data1.items():
         print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graph_paths = Period_Grouped_bars(graph_data, df_transposed)  # Generate graphs
         graphs.update(graph_paths)  # Merge all generated paths into `graphs`
     Summary_Tables1 = { 
         "Ch1_Profitability": ["Ingresos", "Margen_Bruto", "Utilidad_Operacional", "Utilidad_Neta"]}
     for section, varlist in Summary_Tables1.items(): 
         tables[section] = generate_Summary_table(df_raw, section, varlist)
 ### CAP 2
-def Cap2 (df_raw,df_trans_latest_two):
+def Cap2 (df_raw,df_trans_latest_two, df_transposed):
     #== Blocks Plots
     # Get the latest column (i.e., the latest period)
     latest_period = df_raw.columns[-1]              #============== CAP 2
@@ -1731,7 +1739,7 @@ def Cap2 (df_raw,df_trans_latest_two):
             "colors": ["#d7a42e","#e18216"]}}  # Color mapping
     for graph_name, graph_data in Period_Grouped_Bar_data2.items():
         print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graph_paths = Period_Grouped_bars(graph_data, df_transposed)  # Generate graphs
         graphs.update(graph_paths)  # Merge all generated paths into `graphs`
 
     Summary_Tables2 = { 
@@ -1744,7 +1752,7 @@ def Cap2 (df_raw,df_trans_latest_two):
     print(f"Generating Timeline: {nombre_linea}...")
     graphs.update(Line_Path)  # Merge all generated paths into `graphs`
 ### CAP 3
-def Cap3 (df_raw):
+def Cap3 (df_raw, df_transposed):
     Bi_Per_Table_Data3 = {                                       #========== CAP 3
         "Chap3": {
             "title":["Capítulo 3 - Otro Capital"],
@@ -1789,7 +1797,7 @@ def Cap3 (df_raw):
     for section, varlist in Summary_Tables3.items(): 
         tables[section] = generate_Summary_table(df_raw, section, varlist)
 ### CAP 4
-def Cap4 (df_raw):
+def Cap4 (df_raw, df_transposed):
     latest_period = df_raw.columns[-1]
     Cash_vs_Profit_Dict = {                                     #===========CAP 4
         "1": {
@@ -1839,7 +1847,7 @@ def Cap4 (df_raw):
             "colors": ["#ecb944","#e0642a"]}}
     for graph_name, graph_data in Period_Grouped_Bar_data4.items():
         print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graph_paths = Period_Grouped_bars(graph_data, df_transposed)  # Generate graphs
         graphs.update(graph_paths)  # Merge all generated paths into `graphs`
 
     Summary_Tables4 = { 
@@ -1847,7 +1855,7 @@ def Cap4 (df_raw):
     for section, varlist in Summary_Tables4.items(): 
         tables[section] = generate_Summary_table(df_raw, section, varlist)
 ### VALUACION y Poder del UNO
-def Valuacion_y_Poder_del_Uno(df_raw,ValorObjetivo,Ajuste):
+def Valuacion_y_Poder_del_Uno(df_raw,ValorObjetivo,Ajuste, df_transposed):
     #============= Poder del UNO==========#
     df_power = build_power_of_one(df_raw)
     df_power_transposed = df_power.T
@@ -1880,7 +1888,7 @@ def Valuacion_y_Poder_del_Uno(df_raw,ValorObjetivo,Ajuste):
             "colors": ["#ecb944","#e0642a"]}} 
     for graph_name, graph_data in Period_Grouped_Bar_dataUNO.items():
         print(f"Generating graph: {graph_name}...")
-        graph_paths = Period_Grouped_bars(graph_data)  # Generate graphs
+        graph_paths = Period_Grouped_bars(graph_data, df_transposed)  # Generate graphs
         graphs.update(graph_paths)  # Merge all generated paths into `graphs`
 
     weights = [4, 3, 2, 1]
@@ -2184,17 +2192,17 @@ def generate_report(df_raw, selected_sections, Usuario, Company_Name):
     df_raw.columns = df_raw.columns.astype(str)
     df_raw.index = df_raw.index.astype(str)  # Convert index to strings
     if "Resumen" in selected_sections:
-        Resumen(df_raw)
+        Resumen(df_raw, df_transposed)
     if "Capítulo 1 - Rentabilidad" in selected_sections:
-        Cap1(df_raw)
+        Cap1(df_raw, df_transposed)
     if "Capítulo 2 - Capital de Trabajo" in selected_sections:
-        Cap2(df_raw, df_trans_latest_two)
+        Cap2(df_raw, df_trans_latest_two, df_transposed)
     if "Capítulo 3 - Otro Capital" in selected_sections:
-        Cap3(df_raw)
+        Cap3(df_raw, df_transposed)
     if "Capítulo 4 - Financiamiento" in selected_sections:
-        Cap4(df_raw)
+        Cap4(df_raw, df_transposed)
     if "Poder del Uno" in selected_sections or "Valuación" in selected_sections:
-        Valuacion_y_Poder_del_Uno(df_raw, ValorObjetivo, Ajuste)
+        Valuacion_y_Poder_del_Uno(df_raw, ValorObjetivo, Ajuste, df_transposed)
     if "Crecimiento Sostenible" in selected_sections:
         Crecimiento_Sostenible(df_raw)
     if "Resultados & Proyecciones" in selected_sections:
@@ -2213,8 +2221,13 @@ def generate_report(df_raw, selected_sections, Usuario, Company_Name):
     try:
         locale.setlocale(locale.LC_TIME, 'es_MX.UTF-8')
     except locale.Error:
-        locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')  # fallback
-    # 1. Load your HTML template (instead of .md)
+        try: 
+            locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')  # fallback
+        except locale.Error:
+            # final fallback to user’s default locale
+            locale.setlocale(locale.LC_TIME, '')
+            st.warning("Using default locale for dates (Spanish locale not found)")
+# 1. Load your HTML template (instead of .md)
     with open("templates/HTML_Template.html", encoding="utf-8") as f:
         html_template = f.read()
     template = Template(html_template)

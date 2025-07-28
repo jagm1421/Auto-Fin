@@ -155,276 +155,291 @@
   {{ tables['Financiamiento']        | safe }}
   <div class="page-break"></div>
 
-  <!-- Resumen Section -->
-  <h1>Resumen</h1>
-  <div style="height: 2em;"></div>
-  <h2>La Historia de tus Ganancias</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Profit_Story'] }}" alt="Profit Story" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="wide">
-    {{ tables['Rendimiento'] | safe }}
-  </div>
-  <div style="height: 2em;"></div>
-  <h2>La Historia de tu Balance General</h2>
-  <div style="height: 1em;"></div>
+  {% if graphs.get('Profit_Story') %}
+    <!-- Resumen Section -->
+    <h1>Resumen</h1>
+    <div style="height: 2em;"></div>
+    <h2>La Historia de tus Ganancias</h2>
+    <div style="height: 1em;"></div>
     <div class="center">
-    <img src="{{ graphs['BalanceSheet_Story'] }}" alt="Balance Sheet Story" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="wide">
-    {{ tables['Balance'] | safe }}
-  </div>
-  <div class="page-break"></div>
+      <img src="{{ graphs['Profit_Story'] }}" alt="Profit Story" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="wide">
+      {{ tables['Rendimiento'] | safe }}
+    </div>
+    <div style="height: 2em;"></div>
+    <h2>La Historia de tu Balance General</h2>
+    <div style="height: 1em;"></div>
+      <div class="center">
+      <img src="{{ graphs['BalanceSheet_Story'] }}" alt="Balance Sheet Story" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="wide">
+      {{ tables['Balance'] | safe }}
+    </div>
+    <div class="page-break"></div>
 
-  <h2>La Historia de tu Flujo de Efectivo</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['CashFlow_Story'] }}" alt="Cash Flow Story" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="wide">
-    {{ tables['FlujodeEfectivo'] | safe }}
-  </div>
-  <div class="page-break"></div>
+    <h2>La Historia de tu Flujo de Efectivo</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['CashFlow_Story'] }}" alt="Cash Flow Story" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="wide">
+      {{ tables['FlujodeEfectivo'] | safe }}
+    </div>
+    <div class="page-break"></div>
+  {% endif %}
 
-  <!-- Capítulo 1 -->
-  <h1>Capítulo 1</h1>
-  <div style="height: 2em;"></div>
-  <h2>Rentabilidad</h2>
-  <div style="height: 1em;"></div>
-  {{ tables['Ch1_Profitability'] | safe }}
-  <div style="height: 2em;"></div>
+  {% if graphs.get('Profitability_Trends') %}
+    <!-- Capítulo 1 -->
+    <h1>Capítulo 1</h1>
+    <div style="height: 2em;"></div>
+    <h2>Rentabilidad</h2>
+    <div style="height: 1em;"></div>
+    {{ tables['Ch1_Profitability'] | safe }}
+    <div style="height: 2em;"></div>
 
-  <h2>Tendencias de Rentabilidad</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Profitability_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
+    <h2>Tendencias de Rentabilidad</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Profitability_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Crecimiento de Ingresos vs Costo de Ventas</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['RevenueVScogs'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="page-break"></div>
+    <h2>Crecimiento de Ingresos vs Costo de Ventas</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['RevenueVScogs'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="page-break"></div>
 
-  <h2>Crecimiento de Ingresos vs Gastos Administrativos</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['RevenueVSoverhead'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
+    <h2>Crecimiento de Ingresos vs Gastos Administrativos</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['RevenueVSoverhead'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Razones de Rentabilidad</h2>
-  <div style="height: 1em;"></div>
-  <div class="wide">
-    {{ tables['Chap1'] | safe }}
-  </div>
-  <div class="page-break"></div>
+    <h2>Razones de Rentabilidad</h2>
+    <div style="height: 1em;"></div>
+    <div class="wide">
+      {{ tables['Chap1'] | safe }}
+    </div>
+    <div class="page-break"></div>
+  {% endif %}
 
-  <!-- Capítulo 2 -->
-  <h1>Capítulo 2</h1>
-  <div style="height: 2em;"></div>
-  <h2>Capital de Trabajo</h2>
-  <div style="height: 1em;"></div>
-  {{ tables['Ch2_WC'] | safe }}
-  <div style="height: 2em;"></div>
-  <h2>Tendencias de Capital de Trabajo</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Working_Capital_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="page-break"></div>
+  {% if graphs.get('Working_Capital_Trends') %}
+    <!-- Capítulo 2 -->
+    <h1>Capítulo 2</h1>
+    <div style="height: 2em;"></div>
+    <h2>Capital de Trabajo</h2>
+    <div style="height: 1em;"></div>
+    {{ tables['Ch2_WC'] | safe }}
+    <div style="height: 2em;"></div>
+    <h2>Tendencias de Capital de Trabajo</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Working_Capital_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="page-break"></div>
 
-  <h2>Línea del Tiempo del Capital de Trabajo</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['working_capital_timeline'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
+    <h2>Línea del Tiempo del Capital de Trabajo</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['working_capital_timeline'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Capital de Trabajo por $100</h2>
-  <div class="flex-block">
-    <img src="{{ graphs['Working_Capital_Blocks'] }}" alt="" style="max-width:100%;height:auto;" />
-    <img src="{{ graphs['ResumenCapTrabajo'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="page-break"></div>
+    <h2>Capital de Trabajo por $100</h2>
+    <div class="flex-block">
+      <img src="{{ graphs['Working_Capital_Blocks'] }}" alt="" style="max-width:100%;height:auto;" />
+      <img src="{{ graphs['ResumenCapTrabajo'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="page-break"></div>
 
-  <h2>Inversión en Capital de Trabajo por $100</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Investment_WC_per100DLLS'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
+    <h2>Inversión en Capital de Trabajo por $100</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Investment_WC_per100DLLS'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Margen Bruto vs Capital de Trabajo por $100</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['GrossMarginVSwc'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
+    <h2>Margen Bruto vs Capital de Trabajo por $100</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['GrossMarginVSwc'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Razones del Capital de Trabajo</h2>
-  <div style="height: 1em;"></div>
-  <div class="wide">
-    {{ tables['Chap2'] | safe }}
-  </div>
-  <div class="page-break"></div>
+    <h2>Razones del Capital de Trabajo</h2>
+    <div style="height: 1em;"></div>
+    <div class="wide">
+      {{ tables['Chap2'] | safe }}
+    </div>
+    <div class="page-break"></div>
+  {% endif %}
 
-  <!-- Capítulo 3 -->
-  <h1>Capítulo 3</h1>
-  <div style="height: 2em;"></div>
-  <h2>Otro Capital</h2>
-  <div style="height: 1em;"></div>
-  <div class="wide">
-    {{ tables['Ch3_OtherCap'] | safe }}
-  </div>
-  <div style="height: 2em;"></div>
-  <h2>Tendencias de Retorno sobre Capital</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Return_on_Capital_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
+  {% if graphs.get('Return_on_Capital_Trends') %}
+    <!-- Capítulo 3 -->
+    <h1>Capítulo 3</h1>
+    <div style="height: 2em;"></div>
+    <h2>Otro Capital</h2>
+    <div style="height: 1em;"></div>
+    <div class="wide">
+      {{ tables['Ch3_OtherCap'] | safe }}
+    </div>
+    <div style="height: 2em;"></div>
+    <h2>Tendencias de Retorno sobre Capital</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Return_on_Capital_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Retorno sobre Capital %</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Return_on_Capital'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="page-break"></div>
+    <h2>Retorno sobre Capital %</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Return_on_Capital'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="page-break"></div>
 
-  <h2>Otras Razones de Capital</h2>
-  <div style="height: 1em;"></div>
-  <div class="wide">
-    {{ tables['Chap3'] | safe }}
-  </div>
-  <div class="page-break"></div>
+    <h2>Otras Razones de Capital</h2>
+    <div style="height: 1em;"></div>
+    <div class="wide">
+      {{ tables['Chap3'] | safe }}
+    </div>
+    <div class="page-break"></div>
+  {% endif %}
 
-  <!-- Capítulo 4 -->
-  <h1>Capítulo 4</h1>
-  <div style="height: 2em;"></div>
-  <h2>Financiamiento</h2>
-  <div style="height: 1em;"></div>
-  <div class="wide">
-    {{ tables['Ch4_Fund'] | safe }}
-  </div>
-  <div style="height: 2em;"></div>
+  {% if graphs.get('Funding_Trends') %}
+    <!-- Capítulo 4 -->
+    <h1>Capítulo 4</h1>
+    <div style="height: 2em;"></div>
+    <h2>Financiamiento</h2>
+    <div style="height: 1em;"></div>
+    <div class="wide">
+      {{ tables['Ch4_Fund'] | safe }}
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Tendencias de Financiamiento</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Funding_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
+    <h2>Tendencias de Financiamiento</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Funding_Trends'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
 
-  <h2>Tu Financiamiento</h2>
-  <div style="height: 1em;"></div>
-  {{ tables["Cashflow_Summary"] | safe }}
-  <div style="height: 2em;"></div>
-  <div class="center">
-    <img src="{{ graphs['shortfall_legend'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
-  <h2>Tu Ecuación</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Funding_Story'] }}" alt="" style="max-width:100%;height:auto;" />
-    <img src="{{ brackets_path }}" alt="" style="width:650px;" />
-  </div>
-  <div class="flex-block" style="font-weight:bold; color:#99a5ad;">
-    <div style="width:50%; text-align:center;">Financiamiento</div>
-    <div style="width:50%; text-align:center;">Activos Operativos Netos</div>
-  </div>
-  <div class="page-break"></div>
+    <h2>Tu Financiamiento</h2>
+    <div style="height: 1em;"></div>
+    {{ tables["Cashflow_Summary"] | safe }}
+    <div style="height: 2em;"></div>
+    <div class="center">
+      <img src="{{ graphs['shortfall_legend'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
+    <h2>Tu Ecuación</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Funding_Story'] }}" alt="" style="max-width:100%;height:auto;" />
+      <img src="{{ brackets_path }}" alt="" style="width:650px;" />
+    </div>
+    <div class="flex-block" style="font-weight:bold; color:#99a5ad;">
+      <div style="width:50%; text-align:center;">Financiamiento</div>
+      <div style="width:50%; text-align:center;">Activos Operativos Netos</div>
+    </div>
+    <div class="page-break"></div>
 
-  <h2>Rentabilidad vs Flujo de Efectivo</h2>
-  <div style="height: 1em;"></div>
-  {{ tables["Cash_vs_Profit"] | safe }}
-  <div style="height: 3em;"></div>
-  <h2>Beneficio del Efectivo Operacional vs Flujo de Efectivo Operacional</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['OperatingCash'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="page-break"></div>
+    <h2>Rentabilidad vs Flujo de Efectivo</h2>
+    <div style="height: 1em;"></div>
+    {{ tables["Cash_vs_Profit"] | safe }}
+    <div style="height: 3em;"></div>
+    <h2>Beneficio del Efectivo Operacional vs Flujo de Efectivo Operacional</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['OperatingCash'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="page-break"></div>
 
-  <h2>Razones de Financiamiento</h2>
-  <div style="height: 1em;"></div>
-  <div class="wide">
-    {{ tables['Chap4'] | safe }}
-  </div>
-  <div class="page-break"></div>
+    <h2>Razones de Financiamiento</h2>
+    <div style="height: 1em;"></div>
+    <div class="wide">
+      {{ tables['Chap4'] | safe }}
+    </div>
+    <div class="page-break"></div>
+  {% endif %}
 
-  <!-- Poder del Uno -->
-  <h1>Poder del Uno</h1>
-  <div style="height: 2em;"></div>
-  <h2>Tu Poder del Uno</h2>
-  <div style="height: 1em;"></div>
-  {{ tables["Poder_UNO"] | safe }}
-  <div style="height: 2em;"></div>
+  {% if graphs.get('ImpactoUNO') %}
+    <!-- Poder del Uno -->
+    <h1>Poder del Uno</h1>
+    <div style="height: 2em;"></div>
+    <h2>Tu Poder del Uno</h2>
+    <div style="height: 1em;"></div>
+    {{ tables["Poder_UNO"] | safe }}
+    <div style="height: 2em;"></div>
 
-  <h2>Impacto de Tu Poder del Uno</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['ImpactoUNO'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="page-break"></div>
+    <h2>Impacto de Tu Poder del Uno</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['ImpactoUNO'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="page-break"></div>
 
-  <!-- Indicador del Valor -->
-  <div style="height: 2em;"></div>
-  <h1>Indicador del Valor del Negocio</h1>
-  <div style="height: 1em;"></div>
-  <h2>Valor de tu Negocio</h2>
-  <div style="height: 1em;"></div>
-  {{ tables["Valuation_Params"] | safe }}
-  <div style="height: 2em;"></div>
-  {{ tables["1Val"] | safe }}
-  <div style="height: 2em;"></div>
-  {{ tables["2Val"] | safe }}
-  <div class="page-break"></div>
+    <!-- Indicador del Valor -->
+    <div style="height: 2em;"></div>
+    <h1>Indicador del Valor del Negocio</h1>
+    <div style="height: 1em;"></div>
+    <h2>Valor de tu Negocio</h2>
+    <div style="height: 1em;"></div>
+    {{ tables["Valuation_Params"] | safe }}
+    <div style="height: 2em;"></div>
+    {{ tables["1Val"] | safe }}
+    <div style="height: 2em;"></div>
+    {{ tables["2Val"] | safe }}
+    <div class="page-break"></div>
 
-  <div class="wide">
-    {{ tables["3Val"] | safe }}
-  </div>
-  <div style="height: 2em;"></div>
-  <div class="center">
-    <img src="{{ graphs['Valuation_StackedBar'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div style="height: 2em;"></div>
-  <div class="wide">
-    {{ tables["4Val"] | safe }}
-  <div style="height: 1em;"></div>
-    {{ tables["5Val"] | safe }}
-  </div>
-  <div class="page-break"></div>
+    <div class="wide">
+      {{ tables["3Val"] | safe }}
+    </div>
+    <div style="height: 2em;"></div>
+    <div class="center">
+      <img src="{{ graphs['Valuation_StackedBar'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div style="height: 2em;"></div>
+    <div class="wide">
+      {{ tables["4Val"] | safe }}
+    <div style="height: 1em;"></div>
+      {{ tables["5Val"] | safe }}
+    </div>
+    <div class="page-break"></div>
+  {% endif %}
 
-  <!-- Crecimiento sostenido -->
-  <h1>Crecimiento sostenido</h1>
-  <div style="height: 2em;"></div>
-  <h2>Tu Crecimiento sostenido</h2>
-  <div style="height: 1em;"></div>
-  <div class="center">
-    <img src="{{ graphs['sustainable_growth'] }}" alt="" style="max-width:100%;height:auto;" />
-  </div>
-  <div class="page-break"></div>
+  {% if graphs.get('sustainable_growth') %}
+    <!-- Crecimiento sostenido -->
+    <h1>Crecimiento sostenido</h1>
+    <div style="height: 2em;"></div>
+    <h2>Tu Crecimiento sostenido</h2>
+    <div style="height: 1em;"></div>
+    <div class="center">
+      <img src="{{ graphs['sustainable_growth'] }}" alt="" style="max-width:100%;height:auto;" />
+    </div>
+    <div class="page-break"></div>
 
-  <!-- Resultados & Proyecciones -->
-  <h1>Resultados & Proyecciones</h1>
-  <div style="height: 2em;"></div>
-  {{ tables["Results_Statement"] | safe }}
-  <div style="height: 2em;"></div>
-  {{ tables["Balance_Sheet"] | safe }}
-  <div class="page-break"></div>
+    <!-- Resultados & Proyecciones -->
+    <h1>Resultados & Proyecciones</h1>
+    <div style="height: 2em;"></div>
+    {{ tables["Results_Statement"] | safe }}
+    <div style="height: 2em;"></div>
+    {{ tables["Balance_Sheet"] | safe }}
+    <div class="page-break"></div>
 
-  {{ tables["ResultsChap1"] | safe }}
-  <div style="height: 2em;"></div>
-  {{ tables["ResultsChap2"] | safe }}
-  <div class="page-break"></div>
+    {{ tables["ResultsChap1"] | safe }}
+    <div style="height: 2em;"></div>
+    {{ tables["ResultsChap2"] | safe }}
+    <div class="page-break"></div>
 
-  {{ tables["ResultsChap3"] | safe }}
-  <div style="height: 2em;"></div>
-  {{ tables["ResultsChap4"] | safe }}
+    {{ tables["ResultsChap3"] | safe }}
+    <div style="height: 2em;"></div>
+    {{ tables["ResultsChap4"] | safe }}
+  {% endif %}
+
 </body>
 </html>
